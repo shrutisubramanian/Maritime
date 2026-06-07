@@ -44,3 +44,9 @@ def get_my_documents(
     return db.query(Document).filter(
         Document.user_id == current_user.id
     ).all()
+
+@router.get("/debug")
+def debug_documents(
+    db: Session = Depends(get_db)
+):
+    return db.query(Document).all()

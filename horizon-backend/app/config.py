@@ -23,7 +23,7 @@ class Settings:
             raise ValueError("JWT_SECRET environment variable is required")
             
         # Optional settings with sensible production-ready defaults
-        self.JWT_EXPIRE_MINUTES: int = int(os.getenv("JWT_EXPIRE_MINUTES", "60"))
+        self.JWT_EXPIRE_MINUTES: int = int(os.getenv("JWT_EXPIRE_MINUTES", "1440"))
         self.JWT_ALGORITHM: str = os.getenv("JWT_ALGORITHM", "HS256")
         
         # Environment mode (development, staging, production)

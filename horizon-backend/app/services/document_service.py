@@ -1,10 +1,12 @@
 import os
 import uuid
 
-from fastapi import UploadFile, HTTPException, status
+from fastapi import UploadFile
 from sqlalchemy.orm import Session
 
 from app.models.document import Document, DocumentType
+from app.services.ocr_service import OCRService
+from app.services.document_parser import DocumentParser
 
 
 class DocumentService:
@@ -26,12 +28,20 @@ class DocumentService:
             content = await file.read()
             buffer.write(content)
 
-        document = Document(
-            user_id=user_id,
-            document_type=document_type,
-            file_url=filepath
-        )
+        # OCR
+        ocr_text = OCRService.extract_text(filepath)
 
+        fields = DocumentParser.extract_fields(ocr_text)
+
+        document = Document(
+          user_id=user_id,
+          document_type=document_type,
+          file_url=filepath,
+          ocr_extracted={
+            "raw_text": ocr_text,
+            "fields": fields
+    }
+)
         db.add(document)
         db.commit()
         db.refresh(document)

@@ -13,6 +13,9 @@ class DocumentResponse(BaseModel):
     document_type: DocumentType
     file_url: str
     status: DocumentStatus
+
+    ocr_extracted: dict | None = None
+
     created_at: datetime
 
     class Config:
