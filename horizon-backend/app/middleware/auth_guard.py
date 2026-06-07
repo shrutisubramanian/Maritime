@@ -31,21 +31,30 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     )
     
     try:
-        # Decode the JWT token using our secret key and algorithm
-        payload = jwt.decode(token, settings.JWT_SECRET, algorithms=[settings.JWT_ALGORITHM])
-        # Extract the user ID (subject)
-        user_id_str: str = payload.get("sub")
+        payload = jwt.decode(
+            token,
+            settings.JWT_SECRET,
+            algorithms=[settings.JWT_ALGORITHM]
+        )
+
+        print("PAYLOAD:", payload)
+
+        user_id_str = payload.get("sub")
+
+        print("USER ID:", user_id_str)
+
         if user_id_str is None:
             raise credentials_exception
-            
-        # Parse the string into a valid UUID object for PostgreSQL
+
         user_id = uuid.UUID(user_id_str)
-    except (JWTError, ValueError): 
-        # Catch ValueError in case UUID parsing fails or JWTError for bad tokens
+
+    except Exception as e:
+        print("AUTH ERROR:", e)
         raise credentials_exception
 
     # Query the database for the user based on the decoded ID
     user = db.query(User).filter(User.id == user_id).first()
+    print("DB USER:", user)
     if user is None:
         raise credentials_exception
         
