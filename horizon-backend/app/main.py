@@ -5,6 +5,8 @@ from app.database import Base, engine
 from app.models import *
 
 from app.routers import auth, jobs, profiles, quotes, requests
+from app.routers import reviews
+
 
 # Create all tables
 Base.metadata.create_all(bind=engine)
@@ -25,6 +27,9 @@ app.include_router(profiles.router)
 app.include_router(quotes.router)
 app.include_router(requests.router)
 app.include_router(documents.router)
+app.include_router(reviews.router)
+
+
 
 @app.get("/")
 def root():

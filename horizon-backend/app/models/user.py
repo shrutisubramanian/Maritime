@@ -58,10 +58,17 @@ class User(Base):
     
     # Relationships for Reviews
     reviews_given: Mapped[list["Review"]] = relationship(
-        "Review", foreign_keys="[Review.reviewer_id]", back_populates="reviewer", cascade="all, delete-orphan"
+        "Review",
+        foreign_keys="[Review.reviewer_id]",
+        back_populates="reviewer",
+        cascade="all, delete-orphan"
     )
+
     reviews_received: Mapped[list["Review"]] = relationship(
-        "Review", foreign_keys="[Review.provider_id]", back_populates="provider", cascade="all, delete-orphan"
+        "Review",
+        foreign_keys="[Review.reviewed_user_id]",
+        back_populates="reviewed_user",
+        cascade="all, delete-orphan"
     )
 
     def __repr__(self) -> str:
