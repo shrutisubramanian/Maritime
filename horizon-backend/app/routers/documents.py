@@ -50,3 +50,30 @@ def debug_documents(
     db: Session = Depends(get_db)
 ):
     return db.query(Document).all()
+
+@router.put(
+    "/{document_id}/verify",
+    response_model=DocumentResponse
+)
+def verify_document(
+    document_id: str,
+    db: Session = Depends(get_db)
+):
+    return DocumentService.verify_document(
+        db=db,
+        document_id=document_id
+    )
+
+
+@router.put(
+    "/{document_id}/reject",
+    response_model=DocumentResponse
+)
+def reject_document(
+    document_id: str,
+    db: Session = Depends(get_db)
+):
+    return DocumentService.reject_document(
+        db=db,
+        document_id=document_id
+    )
