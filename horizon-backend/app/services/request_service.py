@@ -4,9 +4,11 @@ from typing import Optional, List, Tuple
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
 
+from app import services
 from app.models.user import User, UserRole
 from app.models.request import ServiceRequest, UrgencyLevel, RequestStatus
 from app.schemas.request import ServiceRequestCreate, ServiceRequestUpdate
+from app.models.service_category import ServiceCategory
 
 class ServiceRequestService:
     """
@@ -74,6 +76,7 @@ class ServiceRequestService:
         limit: int = 20,
         port: Optional[str] = None,
         service_type: Optional[str] = None,
+        service_group: Optional[str] = None,
         urgency: Optional[UrgencyLevel] = None,
         status_req: Optional[RequestStatus] = None,
         client_id: Optional[uuid.UUID] = None
@@ -90,6 +93,19 @@ class ServiceRequestService:
         
         if service_type:
             query = query.filter(ServiceRequest.service_type.ilike(f"%{service_type}%"))
+
+        if service_group:
+
+            services = db.query(ServiceCategory.name).filter(
+        ServiceCategory.category_group == service_group
+            ).all()
+
+            service_names = [s.name for s in services]
+
+            query = query.filter(
+        ServiceRequest.service_type.in_(service_names)
+    )    
+
             
         if urgency:
             query = query.filter(ServiceRequest.urgency == urgency)

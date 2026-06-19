@@ -46,6 +46,7 @@ def get_all_requests(
     limit: int = Query(20, ge=1, le=100, description="Items per page"),
     port: Optional[str] = Query(None, description="Filter by port"),
     service_type: Optional[str] = Query(None, description="Filter by service type"),
+    service_group: Optional[str] = Query(None,description="Filter by service category group"),
     urgency: Optional[UrgencyLevel] = Query(None, description="Filter by urgency level"),
     status_req: Optional[RequestStatus] = Query(None, alias="status", description="Filter by status"),
     client_id: Optional[uuid.UUID] = Query(None, description="Filter by client ID"),
@@ -60,7 +61,7 @@ def get_all_requests(
     """
     requests, total, page, pages = ServiceRequestService.get_all_requests(
         db=db, page=page, limit=limit, port=port, service_type=service_type,
-        urgency=urgency, status_req=status_req, client_id=client_id
+        urgency=urgency, status_req=status_req, client_id=client_id, service_group=service_group,
     )
     return {
         "data": requests,
