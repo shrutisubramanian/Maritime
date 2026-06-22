@@ -139,6 +139,22 @@ def search_suppliers(
     }
 
 
+@router.put(
+    "/{profile_id}/verify",
+    response_model=ProfileResponse,
+    summary="Verify a profile"
+)
+def verify_profile(
+    profile_id: uuid.UUID,
+    db: Session = Depends(get_db)
+):
+    return ProfileService.verify_profile(
+        db=db,
+        profile_id=profile_id
+    )
+
+
+
 
 @router.get("/{profile_id}", response_model=ProfileResponse, summary="Get a profile by ID")
 def get_profile_by_id(

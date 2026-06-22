@@ -209,3 +209,42 @@ class ProfileService:
         ).all()
 
         return profiles, total, page, pages
+    
+
+
+
+
+    @staticmethod
+    def verify_profile(
+        db: Session,
+        profile_id: uuid.UUID
+    ) -> Profile:
+
+        profile = db.query(Profile).filter(
+            Profile.id == profile_id
+        ).first()
+
+        if not profile:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Profile not found"
+            )
+
+        profile.verification_status = (
+            VerificationStatus.verified
+        )
+
+        user = db.query(User).filter(
+        User.id == profile.user_id
+).first()
+
+        if user.role == UserRole.supplier:
+             profile.badge_label = "VERIFIED SUPPLIER"
+        elif user.role == UserRole.provider:
+             profile.badge_label = "VERIFIED PROVIDER"
+        else:
+             profile.badge_label = "VERIFIED"
+        db.commit()
+        db.refresh(profile)
+
+        return profile
