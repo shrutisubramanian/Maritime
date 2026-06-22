@@ -161,3 +161,51 @@ class ProfileService:
         profiles = query.offset(offset).limit(limit).all()
         
         return profiles, total, page, pages
+    
+
+
+    @staticmethod
+    def search_suppliers(
+        db: Session,
+        page: int = 1,
+        limit: int = 20,
+        skill: Optional[str] = None,
+        port: Optional[str] = None,
+        verification_status: Optional[VerificationStatus] = None
+    ) -> Tuple[List[Profile], int, int, int]:
+
+        query = db.query(Profile).join(
+            User,
+            Profile.user_id == User.id
+        ).filter(
+            User.role == UserRole.supplier
+        )
+
+        if skill:
+            query = query.filter(
+                Profile.skills.contains([skill])
+            )
+
+        if port:
+            query = query.filter(
+                Profile.ports_served.contains([port])
+            )
+
+        if verification_status:
+            query = query.filter(
+                Profile.verification_status == verification_status
+            )
+
+        total = query.count()
+
+        pages = math.ceil(total / limit) if limit > 0 else 1
+
+        offset = (page - 1) * limit
+
+        profiles = query.offset(
+            offset
+        ).limit(
+            limit
+        ).all()
+
+        return profiles, total, page, pages

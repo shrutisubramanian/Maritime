@@ -10,6 +10,7 @@ class UserRole(str, enum.Enum):
     provider = "provider"
     client = "client"
     admin = "admin"
+    supplier = "supplier"
 
 class User(Base):
     """

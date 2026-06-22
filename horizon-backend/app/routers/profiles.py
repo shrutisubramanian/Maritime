@@ -103,6 +103,43 @@ def search_providers(
     }
 
 
+
+
+
+@router.get(
+    "/suppliers",
+    response_model=ProfilePaginatedResponse,
+    summary="Search Supplier Marketplace"
+)
+def search_suppliers(
+    page: int = Query(1, ge=1),
+    limit: int = Query(20, ge=1, le=100),
+    skill: Optional[str] = None,
+    port: Optional[str] = None,
+    verification_status: Optional[VerificationStatus] = None,
+    db: Session = Depends(get_db)
+):
+
+    profiles, total, page, pages = (
+        ProfileService.search_suppliers(
+            db=db,
+            page=page,
+            limit=limit,
+            skill=skill,
+            port=port,
+            verification_status=verification_status
+        )
+    )
+
+    return {
+        "data": profiles,
+        "total": total,
+        "page": page,
+        "pages": pages
+    }
+
+
+
 @router.get("/{profile_id}", response_model=ProfileResponse, summary="Get a profile by ID")
 def get_profile_by_id(
     profile_id: uuid.UUID,
