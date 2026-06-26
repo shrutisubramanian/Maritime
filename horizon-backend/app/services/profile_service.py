@@ -7,6 +7,8 @@ from fastapi import HTTPException, status
 from app.models.profile import Profile, VerificationStatus
 from app.models.user import User, UserRole
 from app.schemas.profile import ProfileCreate, ProfileUpdate
+from app.services.notification_service import NotificationService
+from app.models.notification import NotificationType
 
 class ProfileService:
     """
@@ -230,20 +232,25 @@ class ProfileService:
                 detail="Profile not found"
             )
 
-        profile.verification_status = (
-            VerificationStatus.verified
-        )
+        profile.verification_status = VerificationStatus.verified
 
-        user = db.query(User).filter(
-        User.id == profile.user_id
-).first()
+        user = db.query(User).filter(User.id == profile.user_id).first()
 
         if user.role == UserRole.supplier:
-             profile.badge_label = "VERIFIED SUPPLIER"
+            profile.badge_label = "VERIFIED SUPPLIER"
         elif user.role == UserRole.provider:
-             profile.badge_label = "VERIFIED PROVIDER"
+            profile.badge_label = "VERIFIED PROVIDER"
         else:
-             profile.badge_label = "VERIFIED"
+            profile.badge_label = "VERIFIED"
+
+        NotificationService.create_notification(
+            db=db,
+            user_id=profile.user_id,
+            title="Profile Verified",
+            message="Congratulations! Your profile has been verified.",
+            notification_type=NotificationType.verification
+        )
+
         db.commit()
         db.refresh(profile)
 
