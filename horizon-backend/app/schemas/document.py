@@ -15,6 +15,9 @@ class DocumentResponse(BaseModel):
     status: DocumentStatus
 
     ocr_extracted: dict | None = None
+    doc_category: str | None = None
+    source: str | None = None
+    confidence: str | None = None
 
     created_at: datetime
 

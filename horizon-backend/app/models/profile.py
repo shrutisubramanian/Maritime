@@ -1,8 +1,7 @@
 import uuid
 import enum
 from datetime import datetime
-from sqlalchemy import String, Integer, Float, DateTime, Enum as SQLEnum, ForeignKey
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy import String, Integer, Float, DateTime, Enum as SQLEnum, ForeignKey, JSON
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.database import Base
 
@@ -42,8 +41,8 @@ class Profile(Base):
     years_experience: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     
     # Complex Data stored natively in PostgreSQL JSONB
-    skills: Mapped[list[str] | None] = mapped_column(JSONB, nullable=True, comment="List of technical or maritime skills")
-    ports_served: Mapped[list[str] | None] = mapped_column(JSONB, nullable=True, comment="List of ports where the provider operates")
+    skills: Mapped[list[str] | None] = mapped_column(JSON, nullable=True, comment="List of technical or maritime skills")
+    ports_served: Mapped[list[str] | None] = mapped_column(JSON, nullable=True, comment="List of ports where the provider operates")
     
     # Status Enums
     availability_status: Mapped[AvailabilityStatus] = mapped_column(

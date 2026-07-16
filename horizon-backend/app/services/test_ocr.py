@@ -1,9 +1,13 @@
-from app.services.ocr_service import OCRService
+# pyrefly: ignore [missing-import]
+import fitz
 
-path = r"uploads\9e158f27-849a-46da-b6ca-9f8c0238b08a_ocr file .jpg"
+doc = fitz.open(
+    r"C:\Users\Shruti Subramanian\OneDrive\Desktop\Maritime\horizon-backend\uploads\Vendor_Registration_Form.pdf"
+)
 
-print(path)
+for i, page in enumerate(doc):
+    print("PAGE", i + 1)
+    text = page.get_text()
+    print(repr(text[:500]))
 
-text = OCRService.extract_text(path)
-
-print(text)
+doc.close()
