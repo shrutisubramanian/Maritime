@@ -47,6 +47,7 @@ def process_document(file_path: str, expected_type: str = None) -> dict:
             "data": data,
             "confidence": confidence_score,
             "missing_fields": missing_fields,
+            "extracted_text": "\n".join(lines) if lines else "",
         }
     except Exception as e:
         return _error(str(e))

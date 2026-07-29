@@ -34,8 +34,18 @@ class Review(Base):
     )
 
     rating: Mapped[int] = mapped_column(nullable=False)
+    
+    communication: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    quality: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    timeliness: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    professionalism: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     comment: Mapped[str | None] = mapped_column(
+        String,
+        nullable=True
+    )
+    
+    review_text: Mapped[str | None] = mapped_column(
         String,
         nullable=True
     )

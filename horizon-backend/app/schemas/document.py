@@ -1,25 +1,40 @@
-# app/schemas/document.py
-
 import uuid
 from datetime import datetime
-from pydantic import BaseModel
+from typing import Optional
+from pydantic import BaseModel, ConfigDict
 
 from app.models.document import DocumentType, DocumentStatus
 
+class DocumentBase(BaseModel):
+    name: Optional[str] = None
+    file_path: Optional[str] = None
+    file_type: Optional[str] = None
+    size_bytes: Optional[int] = None
+    document_type: Optional[str] = None
 
-class DocumentResponse(BaseModel):
+class DocumentCreate(DocumentBase):
+    pass
+
+class DocumentUpdate(BaseModel):
+    verification_status: Optional[str] = None
+    expiry_date: Optional[datetime] = None
+    ocr_extracted_data: Optional[dict] = None
+    verified_by: Optional[uuid.UUID] = None
+    verified_at: Optional[datetime] = None
+
+class DocumentResponse(DocumentBase):
     id: uuid.UUID
     user_id: uuid.UUID
-    document_type: DocumentType
     file_url: str
-    status: DocumentStatus
-
-    ocr_extracted: dict | None = None
-    doc_category: str | None = None
-    source: str | None = None
-    confidence: str | None = None
-
+    verification_status: str
+    expiry_date: Optional[datetime] = None
+    ocr_extracted_data: Optional[dict] = None
+    extracted_text: Optional[str] = None
+    doc_category: Optional[str] = None
+    source: Optional[str] = None
+    verified_by: Optional[uuid.UUID] = None
+    verified_at: Optional[datetime] = None
     created_at: datetime
+    updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

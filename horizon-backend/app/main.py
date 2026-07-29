@@ -9,6 +9,7 @@ from app.routers import reviews
 from app.routers import service_categories
 from app.models.notification import Notification
 from app.routers import notifications
+from app.routers import client_procurement
 
 # Create all tables
 Base.metadata.create_all(bind=engine)
@@ -34,6 +35,7 @@ app.include_router(service_categories.router)
 app.include_router(
     notifications.router
 )
+app.include_router(client_procurement.router)
 
 @app.get("/")
 def root():

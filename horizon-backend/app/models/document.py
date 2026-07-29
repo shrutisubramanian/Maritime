@@ -37,21 +37,25 @@ class Document(Base):
     user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     
     # Back-reference to the User model
-    user: Mapped["User"] = relationship(back_populates="documents")
+    user: Mapped["User"] = relationship(back_populates="documents", foreign_keys="[Document.user_id]")
     
     # Document Details
     document_type: Mapped[DocumentType] = mapped_column(SQLEnum(DocumentType), nullable=False)
     file_url: Mapped[str] = mapped_column(String, nullable=False, comment="URL to the stored document file (e.g., S3 or Supabase Storage)")
     
     # OCR and Verification
-    ocr_extracted: Mapped[dict | None] = mapped_column(JSON, nullable=True, comment="Raw structured data extracted via OCR")
+    ocr_extracted_data: Mapped[dict | None] = mapped_column(JSON, nullable=True, comment="Raw structured data extracted via OCR")
     verification_score: Mapped[float | None] = mapped_column(Float, nullable=True, comment="Confidence score from the OCR/verification pipeline")
-    status: Mapped[DocumentStatus] = mapped_column(SQLEnum(DocumentStatus), nullable=False, default=DocumentStatus.pending)
+    verification_status: Mapped[DocumentStatus] = mapped_column(SQLEnum(DocumentStatus), nullable=False, default=DocumentStatus.pending)
 
     # Added columns for classification and modular extraction pipeline
+    name: Mapped[str | None] = mapped_column(String, nullable=True)
+    extracted_text: Mapped[str | None] = mapped_column(String, nullable=True)
     doc_category: Mapped[str | None] = mapped_column(String, nullable=True)
     source: Mapped[str | None] = mapped_column(String, nullable=True)
-    confidence: Mapped[str | None] = mapped_column(String, nullable=True)
+    expiry_date: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    verified_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     
     # Timestamps
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
@@ -59,4 +63,4 @@ class Document(Base):
 
     def __repr__(self) -> str:
         """String representation for debugging."""
-        return f"<Document(id={self.id}, type={self.document_type}, user_id={self.user_id}, status={self.status})>"
+        return f"<Document(id={self.id}, type={self.document_type}, user_id={self.user_id}, status={self.verification_status})>"

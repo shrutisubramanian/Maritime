@@ -1,7 +1,7 @@
 import uuid
 import enum
 from datetime import datetime
-from sqlalchemy import String, DateTime, Enum as SQLEnum, ForeignKey
+from sqlalchemy import String, Float, DateTime, Enum as SQLEnum, ForeignKey, JSON
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.database import Base
 
@@ -14,6 +14,7 @@ class RequestStatus(str, enum.Enum):
     open = "open"
     quoted = "quoted"
     assigned = "assigned"
+    awarded = "awarded"
     completed = "completed"
     cancelled = "cancelled"
 
@@ -34,16 +35,24 @@ class ServiceRequest(Base):
     client: Mapped["User"] = relationship(back_populates="service_requests")
     
     # Job Details
+    title: Mapped[str] = mapped_column(String, nullable=False, default="Untitled Request", comment="Title of the procurement request")
     service_type: Mapped[str] = mapped_column(String, nullable=False, comment="Category of service required (e.g., 'Hull Inspection')")
+    subcategory: Mapped[str | None] = mapped_column(String, nullable=True, comment="Subcategory of the service")
+    vessel_name: Mapped[str | None] = mapped_column(String, nullable=True, comment="Name of the vessel")
+    vessel_type: Mapped[str | None] = mapped_column(String, nullable=True, comment="Type of the vessel")
     port: Mapped[str] = mapped_column(String, nullable=False, comment="Port or location where the service is needed")
     description: Mapped[str | None] = mapped_column(String, nullable=True, comment="Detailed scope of work and vessel specifics")
+    budget: Mapped[float | None] = mapped_column(Float, nullable=True, comment="Estimated budget")
+    required_completion_date: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, comment="Required completion date")
+    attachments: Mapped[list | None] = mapped_column(JSON, nullable=True, comment="List of attachment URLs")
+    selected_quotation_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("quotes.id", ondelete="SET NULL"), nullable=True)
     
     # Enums
     urgency: Mapped[UrgencyLevel] = mapped_column(SQLEnum(UrgencyLevel), nullable=False, default=UrgencyLevel.medium)
     status: Mapped[RequestStatus] = mapped_column(SQLEnum(RequestStatus), nullable=False, default=RequestStatus.open)
     
     # One-to-Many relationship to Quotes (Quotes received for this request)
-    quotes: Mapped[list["Quote"]] = relationship(back_populates="request", cascade="all, delete-orphan")
+    quotes: Mapped[list["Quote"]] = relationship(back_populates="request", cascade="all, delete-orphan", foreign_keys="[Quote.request_id]")
     
     # One-to-One relationship to Job (If the request is accepted and assigned)
     job: Mapped["Job"] = relationship(back_populates="request", uselist=False, cascade="all, delete-orphan")

@@ -6,3 +6,8 @@ from .quote import Quote
 from .job import Job
 from .review import Review
 from app.models.service_category import ServiceCategory
+from app.models.notification import Notification
+from app.models.support_ticket import SupportTicket
+from app.models.report import Report
+from app.models.service import Service
+from app.models.favorite_provider import FavoriteProvider

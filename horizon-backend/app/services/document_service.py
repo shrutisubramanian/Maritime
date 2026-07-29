@@ -4,12 +4,16 @@ from app.models.document import DocumentStatus
 import os
 import uuid
 
-from fastapi import UploadFile, HTTPException, status
+from fastapi import UploadFile, HTTPException, status, BackgroundTasks
 from sqlalchemy.orm import Session
+import logging
 
 from app.models.document import Document, DocumentType
 from app.schemas import document
 from app.services.ocr_service import process_document
+from app.database import SessionLocal
+
+logger = logging.getLogger(__name__)
 
 
 def _get_category(doc_type: str) -> str:
@@ -29,7 +33,8 @@ class DocumentService:
         db: Session,
         user_id: uuid.UUID,
         document_type: DocumentType,
-        file: UploadFile
+        file: UploadFile,
+        background_tasks: BackgroundTasks = None
     ):
 
         os.makedirs("uploads", exist_ok=True)
@@ -41,46 +46,72 @@ class DocumentService:
             content = await file.read()
             buffer.write(content)
 
-        # Process document using modular pipeline
-        result = process_document(filepath, expected_type=document_type.value)
-
-        if result["status"] == "error":
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail=result.get("error", "Processing failed")
-            )
-
-        # Map document type
-        detected_type = result.get("document_type")
-        if detected_type and detected_type != "unknown":
-            try:
-                final_doc_type = DocumentType(detected_type)
-            except ValueError:
-                final_doc_type = document_type
-        else:
-            final_doc_type = document_type
-
-        doc_category = _get_category(final_doc_type.value)
+        doc_category = _get_category(document_type.value)
 
         document = Document(
             user_id=user_id,
-            document_type=final_doc_type,
+            document_type=document_type,
+            name=file.filename,
             file_url=filepath,
-            ocr_extracted={
-                "fields": result.get("data"),
-                "missing_fields": result.get("missing_fields", [])
-            },
             doc_category=doc_category,
-            source=result.get("source"),
-            confidence=str(result.get("confidence")),
-            verification_score=float(result.get("confidence")) if result.get("confidence") is not None else 0.0,
-            status=DocumentStatus.extracted
+            verification_status=DocumentStatus.pending
         )
         db.add(document)
         db.commit()
         db.refresh(document)
 
+        if background_tasks:
+            background_tasks.add_task(
+                DocumentService._process_document_background,
+                document.id,
+                filepath,
+                document_type.value
+            )
+        else:
+            # Fallback for testing/sync environments if needed
+            DocumentService._process_document_background(document.id, filepath, document_type.value)
+
         return document
+
+    @staticmethod
+    def _process_document_background(document_id: uuid.UUID, filepath: str, expected_type: str):
+        db = SessionLocal()
+        try:
+            document = db.query(Document).filter(Document.id == document_id).first()
+            if not document:
+                return
+
+            result = process_document(filepath, expected_type=expected_type)
+
+            if result["status"] == "error":
+                logger.error(f"Failed to process document {document_id}: {result.get('error')}")
+                document.verification_status = DocumentStatus.rejected
+                db.commit()
+                return
+
+            detected_type = result.get("document_type")
+            if detected_type and detected_type != "unknown":
+                try:
+                    document.document_type = DocumentType(detected_type)
+                    document.doc_category = _get_category(document.document_type.value)
+                except ValueError:
+                    pass
+
+            document.extracted_text = result.get("extracted_text")
+            document.ocr_extracted_data = {
+                "fields": result.get("data"),
+                "missing_fields": result.get("missing_fields", [])
+            }
+            document.source = result.get("source")
+            document.verification_score = float(result.get("confidence")) if result.get("confidence") is not None else 0.0
+            document.verification_status = DocumentStatus.extracted
+            
+            db.commit()
+        except Exception as e:
+            logger.error(f"Exception during background document processing: {e}")
+            db.rollback()
+        finally:
+            db.close()
 
     @staticmethod
     def verify_document(
@@ -95,7 +126,7 @@ class DocumentService:
         if not document:
             raise ValueError("Document not found")
 
-        document.status = DocumentStatus.verified
+        document.verification_status = DocumentStatus.verified
 
         profile = db.query(Profile).filter(
             Profile.user_id == document.user_id
@@ -128,7 +159,7 @@ class DocumentService:
         if not document:
             raise ValueError("Document not found")
 
-        document.status = DocumentStatus.rejected
+        document.verification_status = DocumentStatus.rejected
 
         profile = db.query(Profile).filter(
             Profile.user_id == document.user_id

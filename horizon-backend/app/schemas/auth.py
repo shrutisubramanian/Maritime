@@ -26,6 +26,19 @@ class LoginRequest(BaseModel):
     email: EmailStr
     password: str
 
+class RefreshTokenRequest(BaseModel):
+    refresh_token: str
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str = Field(..., min_length=8, description="Password must be at least 8 characters long")
+
+class VerifyEmailRequest(BaseModel):
+    token: str
+
 # ---------------------------------------------------------
 # Response Schemas
 # ---------------------------------------------------------
@@ -35,6 +48,7 @@ class TokenResponse(BaseModel):
     Schema for the JWT token response.
     """
     access_token: str
+    refresh_token: Optional[str] = None
     token_type: str = "bearer"
 
 class UserResponse(BaseModel):

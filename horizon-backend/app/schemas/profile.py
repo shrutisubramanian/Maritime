@@ -4,6 +4,7 @@ from typing import List, Optional
 from pydantic import BaseModel, Field, ConfigDict
 
 from app.models.profile import AvailabilityStatus, VerificationStatus
+from app.schemas.service import ServiceResponse
 
 class ProfileBase(BaseModel):
     """
@@ -14,8 +15,15 @@ class ProfileBase(BaseModel):
     company_name: Optional[str] = Field(None, description="Name of the company or vessel")
     bio: Optional[str] = Field(None, description="Short biography or description")
     years_experience: Optional[int] = Field(0, ge=0, description="Years of professional experience (must be >= 0)")
-    skills: Optional[List[str]] = Field(default_factory=list, description="List of technical or maritime skills")
     ports_served: Optional[List[str]] = Field(default_factory=list, description="List of ports where the provider operates")
+    
+    contacts: Optional[List[dict]] = Field(default_factory=list, description="List of contacts")
+    licenses: Optional[List[str]] = Field(default_factory=list, description="List of licenses")
+    team: Optional[List[dict]] = Field(default_factory=list, description="List of team members")
+    offices: Optional[List[str]] = Field(default_factory=list, description="List of offices")
+    social_links: Optional[dict] = Field(default_factory=dict, description="Social media links")
+    profile_metadata: Optional[dict] = Field(default_factory=dict, description="Custom maritime profile metadata")
+    
     availability_status: Optional[AvailabilityStatus] = Field(
         AvailabilityStatus.available, description="Current working status of the provider"
     )
@@ -38,8 +46,15 @@ class ProfileUpdate(BaseModel):
     company_name: Optional[str] = None
     bio: Optional[str] = None
     years_experience: Optional[int] = Field(None, ge=0)
-    skills: Optional[List[str]] = None
     ports_served: Optional[List[str]] = None
+    
+    contacts: Optional[List[dict]] = None
+    licenses: Optional[List[str]] = None
+    team: Optional[List[dict]] = None
+    offices: Optional[List[str]] = None
+    social_links: Optional[dict] = None
+    profile_metadata: Optional[dict] = None
+    
     availability_status: Optional[AvailabilityStatus] = None
 
 class ProfileResponse(ProfileBase):
@@ -54,6 +69,7 @@ class ProfileResponse(ProfileBase):
     badge_label: Optional[str] = None
     rating_avg: float
     jobs_completed: int
+    services: Optional[List[ServiceResponse]] = None
     created_at: datetime
     updated_at: datetime
 

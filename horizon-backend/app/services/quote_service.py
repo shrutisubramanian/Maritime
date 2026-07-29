@@ -1,4 +1,6 @@
 from app.services.job_service import JobService
+from app.services.notification_service import NotificationService
+from app.models.notification import NotificationType
 import uuid
 from typing import List
 from sqlalchemy.orm import Session
@@ -70,6 +72,16 @@ class QuoteService:
                 
             db.commit()
             db.refresh(db_quote)
+            
+            # Notify Client
+            NotificationService.create_notification(
+                db=db,
+                user_id=service_request.client_id,
+                title="New Quote Received",
+                message=f"You have received a new quote of {quote_data.currency} {quote_data.amount} for your request '{service_request.title}'.",
+                notification_type=NotificationType.quote
+            )
+            
             return db_quote
         except Exception:
             db.rollback()
@@ -87,6 +99,47 @@ class QuoteService:
         if not quote_obj:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Quote not found")
         return quote_obj
+
+    @staticmethod
+    def update_quote(
+        db: Session,
+        quote_id: uuid.UUID,
+        provider_id: uuid.UUID,
+        update_data: QuoteUpdate
+    ) -> Quote:
+        """
+        Update an existing quote.
+        Business Rule: Only the provider who created the quote can update it.
+        Can only update if the quote is in 'draft' or 'submitted' status.
+        """
+        quote_obj = QuoteService.get_quote_by_id(db, quote_id)
+
+        if quote_obj.provider_id != provider_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You do not have permission to update this quote"
+            )
+
+        if quote_obj.status not in [QuoteStatus.draft, QuoteStatus.submitted]:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Only draft or submitted quotes can be updated"
+            )
+
+        update_dict = update_data.model_dump(exclude_unset=True)
+        for key, value in update_dict.items():
+            setattr(quote_obj, key, value)
+
+        try:
+            db.commit()
+            db.refresh(quote_obj)
+            return quote_obj
+        except Exception:
+            db.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to update quote"
+            )
 
     @staticmethod
     def get_quotes_for_request(db: Session, request_id: uuid.UUID, client_id: uuid.UUID) -> List[Quote]:
@@ -107,6 +160,13 @@ class QuoteService:
 
         # 2. Return all quotes for this request
         return db.query(Quote).filter(Quote.request_id == request_id).all()
+
+    @staticmethod
+    def get_quotes_for_provider(db: Session, provider_id: uuid.UUID) -> List[Quote]:
+        """
+        Retrieve all quotes submitted by a specific provider.
+        """
+        return db.query(Quote).filter(Quote.provider_id == provider_id).all()
 
     @staticmethod
     def accept_quote(db: Session, quote_id: uuid.UUID, client_id: uuid.UUID) -> Quote:
@@ -140,7 +200,7 @@ class QuoteService:
                 detail="Quote is already accepted"
             )
 
-        if service_request.status == RequestStatus.assigned:
+        if service_request.status in [RequestStatus.assigned, RequestStatus.awarded]:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="This request has already been assigned to a provider"
@@ -150,17 +210,34 @@ class QuoteService:
             # Accept the selected quote
             quote_obj.status = QuoteStatus.accepted
 
-            # Reject all competing quotes
-            db.query(Quote).filter(
+            # Reject all competing quotes and get their provider IDs to notify
+            competing_quotes = db.query(Quote).filter(
                 Quote.request_id == quote_obj.request_id,
                 Quote.id != quote_obj.id
-            ).update(
-                {"status": QuoteStatus.rejected},
-                synchronize_session=False
-            )
+            ).all()
+            
+            for cq in competing_quotes:
+                cq.status = QuoteStatus.rejected
+                NotificationService.create_notification(
+                    db=db,
+                    user_id=cq.provider_id,
+                    title="Quote Rejected",
+                    message=f"Your quote for request '{service_request.title}' has been rejected.",
+                    notification_type=NotificationType.quote
+                )
 
-            # Update request status
-            service_request.status = RequestStatus.assigned
+            # Update request status and selected quotation
+            service_request.status = RequestStatus.awarded
+            service_request.selected_quotation_id = quote_obj.id
+            
+            # Notify the accepted provider
+            NotificationService.create_notification(
+                db=db,
+                user_id=quote_obj.provider_id,
+                title="Quote Accepted!",
+                message=f"Congratulations! Your quote for request '{service_request.title}' has been accepted.",
+                notification_type=NotificationType.quote
+            )
 
             # Save changes so the quote is officially accepted
             db.commit()
@@ -206,6 +283,16 @@ class QuoteService:
         try:
             quote_obj.status = QuoteStatus.rejected
             db.commit()
+            
+            # Notify the rejected provider
+            NotificationService.create_notification(
+                db=db,
+                user_id=quote_obj.provider_id,
+                title="Quote Rejected",
+                message=f"Your quote for request '{service_request.title}' has been rejected.",
+                notification_type=NotificationType.quote
+            )
+            
             db.refresh(quote_obj)
             return quote_obj
         except Exception:

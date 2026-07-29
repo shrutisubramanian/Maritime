@@ -1,12 +1,13 @@
 import uuid
-from typing import List
-from fastapi import APIRouter, Depends
+from typing import List, Optional
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.middleware.auth_guard import get_current_user
 from app.models.user import User
-from app.schemas.job import JobResponse
+from app.models.job import JobStatus
+from app.schemas.job import JobResponse, JobDetailResponse
 from app.services.job_service import JobService
 
 router = APIRouter(
@@ -20,6 +21,7 @@ router = APIRouter(
 
 @router.get("/", response_model=List[JobResponse], summary="Get all jobs you are involved in")
 def get_my_jobs(
+    status: Optional[JobStatus] = Query(None, description="Filter jobs by status"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -30,10 +32,10 @@ def get_my_jobs(
     - `get_current_user` extracts the JWT token to authenticate the user.
     - Uses the database relationships to strictly filter jobs by the logged-in user.
     """
-    return JobService.get_all_jobs_for_user(db=db, user_id=current_user.id)
+    return JobService.get_all_jobs_for_user(db=db, user_id=current_user.id, status=status)
 
 
-@router.get("/{job_id}", response_model=JobResponse, summary="Get details of a specific job")
+@router.get("/{job_id}", response_model=JobDetailResponse, summary="Get details of a specific job")
 def get_job(
     job_id: uuid.UUID,
     db: Session = Depends(get_db),

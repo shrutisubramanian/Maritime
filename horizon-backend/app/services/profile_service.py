@@ -70,10 +70,11 @@ class ProfileService:
         return profile
 
     @staticmethod
-    def get_profile_by_id(db: Session, profile_id: uuid.UUID) -> Profile:
+    def get_profile_by_id(db: Session, profile_id: uuid.UUID, current_user: Optional[User] = None) -> Profile:
         """
         Retrieves a profile by its own primary key.
         Useful for public profile viewing by other users or clients.
+        Clients are blocked from viewing other clients' profiles to enforce privacy.
         """
         profile = db.query(Profile).filter(Profile.id == profile_id).first()
         if not profile:
@@ -81,6 +82,15 @@ class ProfileService:
                 status_code=status.HTTP_404_NOT_FOUND, 
                 detail="Profile not found"
             )
+            
+        if current_user and current_user.role == UserRole.client:
+            target_user = db.query(User).filter(User.id == profile.user_id).first()
+            if target_user and target_user.role == UserRole.client and target_user.id != current_user.id:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Access denied: Clients cannot view other clients' profiles"
+                )
+                
         return profile
 
     @staticmethod

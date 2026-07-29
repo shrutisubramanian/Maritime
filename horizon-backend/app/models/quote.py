@@ -1,14 +1,17 @@
 import uuid
 import enum
 from datetime import datetime
-from sqlalchemy import String, Float, DateTime, Enum as SQLEnum, ForeignKey
+from sqlalchemy import String, Float, DateTime, Boolean, Enum as SQLEnum, ForeignKey, JSON
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.database import Base
 
 class QuoteStatus(str, enum.Enum):
-    pending = "pending"
+    draft = "draft"
+    submitted = "submitted"
+    under_review = "under_review"
     accepted = "accepted"
     rejected = "rejected"
+    expired = "expired"
 
 class Quote(Base):
     """
@@ -27,19 +30,31 @@ class Quote(Base):
     provider_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     
     # Back-references
-    request: Mapped["ServiceRequest"] = relationship(back_populates="quotes")
+    request: Mapped["ServiceRequest"] = relationship(back_populates="quotes", foreign_keys="[Quote.request_id]")
     provider: Mapped["User"] = relationship(back_populates="quotes")
     
     # One-to-One relationship to Job (If this quote was accepted)
     job: Mapped["Job"] = relationship(back_populates="quote", uselist=False, cascade="all, delete-orphan")
     
     # Quote Details
+    quotation_reference: Mapped[str | None] = mapped_column(String, nullable=True, comment="Provider's reference ID")
+    pricing_model: Mapped[str | None] = mapped_column(String, nullable=True, comment="E.g. Fixed Price, Hourly")
     amount: Mapped[float] = mapped_column(Float, nullable=False, comment="Proposed price for the service")
     currency: Mapped[str] = mapped_column(String, nullable=False, default="USD")
+    travel_charges: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    emergency_charges: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    taxes_included: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     message: Mapped[str | None] = mapped_column(String, nullable=True, comment="Message or terms included with the quote")
+    estimated_duration: Mapped[str | None] = mapped_column(String, nullable=True, comment="E.g. 3 days")
+    estimated_start_date: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    estimated_completion_date: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    warranty_period: Mapped[str | None] = mapped_column(String, nullable=True)
+    payment_terms: Mapped[str | None] = mapped_column(String, nullable=True)
+    attachments: Mapped[list | None] = mapped_column(JSON, nullable=True)
+    validity_date: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     
     # Status
-    status: Mapped[QuoteStatus] = mapped_column(SQLEnum(QuoteStatus), nullable=False, default=QuoteStatus.pending)
+    status: Mapped[QuoteStatus] = mapped_column(SQLEnum(QuoteStatus), nullable=False, default=QuoteStatus.submitted)
     
     # Timestamps
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)

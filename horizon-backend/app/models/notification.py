@@ -10,9 +10,14 @@ from app.database import Base
 
 class NotificationType(str, enum.Enum):
     quote = "quote"
+    quotation = "quotation"
+    procurement = "procurement"
     job = "job"
     review = "review"
     verification = "verification"
+    request = "request"
+    system = "system"
+    support = "support"
 
 
 class Notification(Base):
@@ -36,8 +41,17 @@ class Notification(Base):
         SQLEnum(NotificationType),
         nullable=False
     )
+    
+    priority: Mapped[str] = mapped_column(String, default="normal")
+    related_entity: Mapped[str | None] = mapped_column(String, nullable=True)
+    related_entity_id: Mapped[uuid.UUID | None] = mapped_column(String, nullable=True)
 
     is_read: Mapped[bool] = mapped_column(
+        Boolean,
+        default=False
+    )
+    
+    is_archived: Mapped[bool] = mapped_column(
         Boolean,
         default=False
     )

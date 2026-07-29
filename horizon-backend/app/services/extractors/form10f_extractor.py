@@ -1,20 +1,12 @@
-from app.parsers.parser_engine import ParserEngine
-from app.templates.form10f_template import FORM10F_TEMPLATE
+from app.parsers.form10f_parser import Form10FParser
 from app.services.extractors.docx_reader import extract_docx_text
 
 
-def extract(file_path: str) -> dict:
-    """
-    Extract data from a Form 10F document file path.
-    """
+def extract(file_path: str):
     text = extract_docx_text(file_path)
-    return ParserEngine.extract(text, FORM10F_TEMPLATE)
+    return Form10FParser.extract(text)
 
 
-def extract_from_text(lines: list[str]) -> dict:
-    """
-    Extract data from a list of extracted text lines from a Form 10F document.
-    """
+def extract_from_text(lines: list[str]):
     text = "\n".join(lines)
-    return ParserEngine.extract(text, FORM10F_TEMPLATE)
-
+    return Form10FParser.extract(text)

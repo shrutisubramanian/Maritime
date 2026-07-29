@@ -46,7 +46,7 @@ class User(Base):
     profile: Mapped["Profile"] = relationship(back_populates="user", uselist=False, cascade="all, delete-orphan")
     
     # One-to-Many relationship to Documents
-    documents: Mapped[list["Document"]] = relationship(back_populates="user", cascade="all, delete-orphan")
+    documents: Mapped[list["Document"]] = relationship(back_populates="user", cascade="all, delete-orphan", foreign_keys="[Document.user_id]")
     
     # One-to-Many relationship to ServiceRequests (Jobs posted by this user)
     service_requests: Mapped[list["ServiceRequest"]] = relationship(back_populates="client", cascade="all, delete-orphan")

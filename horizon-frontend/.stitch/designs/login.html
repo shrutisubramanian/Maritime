@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Horizon Maritime | Login</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Manrope:wght@700;800&amp;family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&amp;family=Manrope:wght@100..900&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "secondary-container": "#244872",
+                      "inverse-surface": "#dce3f0",
+                      "on-surface-variant": "#c4c6ce",
+                      "surface-container-high": "#242a34",
+                      "surface-container-highest": "#2e353f",
+                      "on-background": "#dce3f0",
+                      "on-primary-fixed-variant": "#00497a",
+                      "primary-fixed-dim": "#9ccaff",
+                      "surface": "#0d141d",
+                      "on-primary-fixed": "#001d35",
+                      "on-error-container": "#ffdad6",
+                      "on-tertiary-fixed-variant": "#004e60",
+                      "on-secondary": "#04315a",
+                      "inverse-on-surface": "#2a313b",
+                      "on-primary": "#003256",
+                      "tertiary-fixed-dim": "#4cd6ff",
+                      "secondary-fixed": "#d3e4ff",
+                      "primary-container": "#00203a",
+                      "surface-tint": "#9ccaff",
+                      "primary": "#9ccaff",
+                      "background": "#0d141d",
+                      "inverse-primary": "#0062a0",
+                      "surface-bright": "#333a44",
+                      "on-secondary-fixed-variant": "#244872",
+                      "on-secondary-container": "#95b7e7",
+                      "outline": "#8e9098",
+                      "surface-variant": "#2e353f",
+                      "on-surface": "#dce3f0",
+                      "on-tertiary": "#003543",
+                      "error-container": "#93000a",
+                      "on-error": "#690005",
+                      "on-tertiary-container": "#0092b3",
+                      "error": "#ffb4ab",
+                      "on-primary-container": "#008be1",
+                      "surface-container-lowest": "#080f18",
+                      "primary-fixed": "#d0e4ff",
+                      "secondary-fixed-dim": "#a6c9fa",
+                      "on-tertiary-fixed": "#001f28",
+                      "tertiary-fixed": "#b7eaff",
+                      "on-secondary-fixed": "#001c38",
+                      "tertiary-container": "#00222c",
+                      "surface-dim": "#0d141d",
+                      "secondary": "#a6c9fa",
+                      "surface-container-low": "#151c26",
+                      "surface-container": "#19202a",
+                      "outline-variant": "#44474d",
+                      "tertiary": "#4cd6ff"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "fontFamily": {
+                      "headline": ["Manrope"],
+                      "display": ["Manrope"],
+                      "body": ["Inter"],
+                      "label": ["Inter"]
+              }
+            },
+          },
+        }
+    </script>
+<style>.material-symbols-outlined {
+    font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
+    vertical-align: middle
+    }
+.ocean-bg {
+    background-color: #050B14;
+    background-image: linear-gradient(to bottom, rgba(5, 11, 20, 0.7), rgba(5, 11, 20, 0.95)), url(https://lh3.googleusercontent.com/aida-public/AB6AXuA-BDdikH6puXrEZxn7YgR9Slym7W-4auvBvW-8U9RRoQTN1Tps8uYUn-9inALj1s4ztk0yJtsI2ZI9f_LbnSb4Rakr-8xBnyLuvUxzTnY2SG-qzmHq0D743HPq8HTd5v0o1vkhZhSN189bDi6H7Z5z6zg1jTb2I6j-JFAJuQg1ZcyGuRlb81wIUXr8cEqqpSIb2_bWSsWnVwwRRIDjPoVM9jfPWjwglVP1gfsSH94GMczb0IInK8Nf3o_DmIeVp-CBF1sfEsnL451K);
+    background-size: cover;
+    background-position: center
+    }
+.glass-panel {
+    background: rgba(46, 53, 63, 0.4);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid rgba(156, 202, 255, 0.1)
+    }</style>
+</head>
+<body class="bg-background text-on-background font-body antialiased overflow-hidden">
+<!-- Atmospheric Background Wrapper -->
+<div class="relative min-h-screen w-full flex items-center justify-center ocean-bg" data-alt="A cinematic night view of a massive cargo container ship moving silently through a deep navy ocean under a starlit sky. The scene is captured with a high-end photography style, featuring soft bioluminescent glows around the hull and deep shadows. The lighting is moody and atmospheric, emphasizing a professional maritime infrastructure aesthetic with cool blue and cyan tones. The vastness of the sea is palpable, creating a sense of calm authority and technological precision.">
+<!-- Brand Header (Top-Left) -->
+<div class="fixed top-0 left-0 p-8 z-50">
+<h1 class="font-headline text-2xl font-black text-white tracking-tighter">HORIZON</h1>
+</div>
+<!-- Login Canvas -->
+<main class="w-full max-w-md px-6 z-10">
+<!-- Glassmorphic Container -->
+<div class="glass-panel p-10 rounded-xl shadow-[0_20px_40px_rgba(0,209,255,0.05)] border border-white/5 relative overflow-hidden group">
+<!-- Decorative Corner Glow -->
+<div class="absolute -top-24 -right-24 w-48 h-48 bg-tertiary/10 blur-[80px] rounded-full pointer-events-none group-hover:bg-tertiary/20 transition-colors duration-700"></div>
+<!-- Header Section -->
+<header class="mb-10 text-center">
+<h2 class="font-headline text-3xl font-bold text-white tracking-tight mb-2">Welcome Back</h2>
+<p class="text-on-surface-variant font-label text-sm tracking-wide">Access your maritime command center.</p>
+</header>
+<!-- Form Section -->
+<form action="#" class="space-y-6" onsubmit="return false;">
+<!-- Email Field -->
+<div class="space-y-1.5">
+<label class="text-xs font-medium uppercase tracking-widest text-on-surface-variant/80 ml-1" for="email">Corporate Email</label>
+<div class="relative group">
+<input class="w-full bg-surface-container-lowest border-0 border-b-2 border-outline-variant py-3 px-1 text-on-surface focus:ring-0 focus:border-tertiary transition-all outline-none placeholder:text-outline/40" id="email" placeholder="name@horizon.com" type="email"/>
+<span class="absolute right-2 bottom-3 text-outline/30 group-focus-within:text-tertiary transition-colors">
+<span class="material-symbols-outlined" data-icon="mail">mail</span>
+</span>
+</div>
+</div>
+<!-- Password Field -->
+<div class="space-y-1.5">
+<div class="flex justify-between items-center px-1">
+<label class="text-xs font-medium uppercase tracking-widest text-on-surface-variant/80" for="password">Security Key</label>
+<a class="text-[10px] uppercase font-bold tracking-tighter text-outline hover:text-white transition-colors" href="#">Forgot password?</a>
+</div>
+<div class="relative group">
+<input class="w-full bg-surface-container-lowest border-0 border-b-2 border-outline-variant py-3 px-1 text-on-surface focus:ring-0 focus:border-tertiary transition-all outline-none placeholder:text-outline/40" id="password" placeholder="••••••••" type="password"/>
+<button class="absolute right-2 bottom-3 text-outline/30 hover:text-tertiary transition-colors" onclick="togglePassword()" type="button">
+<span class="material-symbols-outlined" data-icon="visibility" id="eye-icon">visibility</span>
+</button>
+</div>
+</div>
+<!-- CTA Button -->
+<div class="pt-4">
+<button class="w-full py-4 bg-tertiary text-on-tertiary font-headline font-bold rounded-lg shadow-lg hover:shadow-tertiary/20 hover:brightness-110 active:scale-[0.98] transition-all duration-300">
+                            Sign In
+                        </button>
+</div>
+</form>
+<!-- Footer Links -->
+<footer class="mt-8 text-center">
+<p class="text-sm text-on-surface-variant">
+                        Don't have an account? 
+                        <a class="text-tertiary font-semibold ml-1 hover:underline decoration-2 underline-offset-4" href="#">Register</a>
+</p>
+</footer>
+</div>
+<!-- Contextual Footer Metadata -->
+<div class="mt-8 flex justify-center items-center gap-8 opacity-40">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px]" data-icon="shield">shield</span>
+<span class="text-[10px] font-medium tracking-[0.2em] uppercase">AES-256 Encrypted</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px]" data-icon="public">public</span>
+<span class="text-[10px] font-medium tracking-[0.2em] uppercase">Global Logistics Network</span>
+</div>
+</div>
+</main>
+<!-- Floating Particles Effect -->
+<div class="fixed inset-0 pointer-events-none" id="particles"></div>
+</div>
+<script>
+        // Toggle password visibility interaction
+        function togglePassword() {
+            const input = document.getElementById('password');
+            const icon = document.getElementById('eye-icon');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.textContent = 'visibility_off';
+            } else {
+                input.type = 'password';
+                icon.textContent = 'visibility';
+            }
+        }
+
+        // Lightweight atmospheric effect
+        const particleContainer = document.getElementById('particles');
+        const particleCount = 15;
+
+        for (let i = 0; i < particleCount; i++) {
+            const particle = document.createElement('div');
+            const size = Math.random() * 2 + 1;
+            particle.className = 'absolute bg-tertiary/20 rounded-full';
+            particle.style.width = `${size}px`;
+            particle.style.height = `${size}px`;
+            particle.style.left = `${Math.random() * 100}%`;
+            particle.style.top = `${Math.random() * 100}%`;
+            particle.style.opacity = Math.random();
+            
+            // Animation for gentle drift
+            particle.animate([
+                { transform: 'translateY(0) translateX(0)', opacity: 0 },
+                { transform: `translateY(-${Math.random() * 100 + 50}px) translateX(${Math.random() * 20 - 10}px)`, opacity: 0.5 },
+                { transform: `translateY(-${Math.random() * 200 + 100}px) translateX(${Math.random() * 40 - 20}px)`, opacity: 0 }
+            ], {
+                duration: Math.random() * 10000 + 5000,
+                iterations: Infinity,
+                delay: Math.random() * 5000
+            });
+
+            particleContainer.appendChild(particle);
+        }
+    </script>
+</body></html>

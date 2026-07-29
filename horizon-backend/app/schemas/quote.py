@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 from pydantic import BaseModel, Field, ConfigDict
 
 from app.models.quote import QuoteStatus
@@ -12,7 +12,19 @@ class QuoteBase(BaseModel):
     """
     amount: float = Field(..., gt=0, description="The monetary value of the quote (must be strictly greater than 0)")
     currency: str = Field(..., min_length=3, max_length=3, description="3-letter currency code (e.g., USD, EUR)")
+    quotation_reference: Optional[str] = None
+    pricing_model: Optional[str] = None
+    travel_charges: float = 0.0
+    emergency_charges: float = 0.0
+    taxes_included: bool = False
     message: Optional[str] = Field(None, description="Additional message, breakdown, or terms attached to the quote")
+    estimated_duration: Optional[str] = None
+    estimated_start_date: Optional[datetime] = None
+    estimated_completion_date: Optional[datetime] = None
+    warranty_period: Optional[str] = None
+    payment_terms: Optional[str] = None
+    attachments: Optional[List[str]] = None
+    validity_date: Optional[datetime] = None
 
 class QuoteCreate(QuoteBase):
     """
@@ -32,7 +44,19 @@ class QuoteUpdate(BaseModel):
     """
     amount: Optional[float] = Field(None, gt=0)
     currency: Optional[str] = Field(None, min_length=3, max_length=3)
+    quotation_reference: Optional[str] = None
+    pricing_model: Optional[str] = None
+    travel_charges: Optional[float] = None
+    emergency_charges: Optional[float] = None
+    taxes_included: Optional[bool] = None
     message: Optional[str] = None
+    estimated_duration: Optional[str] = None
+    estimated_start_date: Optional[datetime] = None
+    estimated_completion_date: Optional[datetime] = None
+    warranty_period: Optional[str] = None
+    payment_terms: Optional[str] = None
+    attachments: Optional[List[str]] = None
+    validity_date: Optional[datetime] = None
     status: Optional[QuoteStatus] = None
 
 class QuoteResponse(QuoteBase):
@@ -50,3 +74,11 @@ class QuoteResponse(QuoteBase):
 
     # Instructs Pydantic to extract data directly from SQLAlchemy ORM objects
     model_config = ConfigDict(from_attributes=True)
+
+class RequestSnippet(BaseModel):
+    title: str
+    service_type: str
+    model_config = ConfigDict(from_attributes=True)
+
+class QuoteWithRequestResponse(QuoteResponse):
+    request: Optional[RequestSnippet] = None

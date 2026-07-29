@@ -7,6 +7,8 @@ from app.models.review import Review
 from app.models.profile import Profile
 from app.schemas import profile
 from app.schemas.review import ReviewCreate
+from app.services.notification_service import NotificationService
+from app.models.notification import NotificationType
 
 
 class ReviewService:
@@ -77,6 +79,14 @@ class ReviewService:
 
         db.commit()
         db.refresh(review)
+
+        NotificationService.create_notification(
+            db=db,
+            user_id=job.provider_id,
+            title="New Review Received",
+            message=f"You received a {review_data.rating}-star review for the job.",
+            notification_type=NotificationType.review
+        )
 
         return review
 

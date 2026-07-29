@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>HORIZON | Maritime B2B Infrastructure</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                "surface-container-lowest": "#080f18",
+                "surface-container-low": "#151c26",
+                "surface-dim": "#0d141d",
+                "on-tertiary-fixed-variant": "#004e60",
+                "primary-container": "#00203a",
+                "on-tertiary": "#003543",
+                "secondary-container": "#244872",
+                "secondary": "#a6c9fa",
+                "tertiary-container": "#00222c",
+                "on-secondary-fixed": "#001c38",
+                "on-secondary-fixed-variant": "#244872",
+                "tertiary-fixed": "#b7eaff",
+                "inverse-on-surface": "#2a313b",
+                "on-error-container": "#ffdad6",
+                "surface-variant": "#2e353f",
+                "error": "#ffb4ab",
+                "on-tertiary-fixed": "#001f28",
+                "on-surface-variant": "#c4c6ce",
+                "on-tertiary-container": "#0092b3",
+                "surface": "#0d141d",
+                "surface-container-highest": "#2e353f",
+                "inverse-primary": "#0062a0",
+                "on-primary-fixed": "#001d35",
+                "primary": "#9ccaff",
+                "on-secondary-container": "#95b7e7",
+                "primary-fixed": "#d0e4ff",
+                "secondary-fixed": "#d3e4ff",
+                "background": "#0d141d",
+                "outline": "#8e9098",
+                "on-error": "#690005",
+                "tertiary-fixed-dim": "#4cd6ff",
+                "surface-bright": "#333a44",
+                "error-container": "#93000a",
+                "tertiary": "#4cd6ff",
+                "primary-fixed-dim": "#9ccaff",
+                "on-primary": "#003256",
+                "on-surface": "#dce3f0",
+                "outline-variant": "#44474d",
+                "surface-tint": "#9ccaff",
+                "surface-container": "#19202a",
+                "inverse-surface": "#dce3f0",
+                "secondary-fixed-dim": "#a6c9fa",
+                "on-primary-container": "#008be1",
+                "on-background": "#dce3f0",
+                "on-primary-fixed-variant": "#00497a",
+                "on-secondary": "#04315a",
+                "surface-container-high": "#242a34"
+            },
+            "borderRadius": {
+                "DEFAULT": "0.25rem",
+                "lg": "0.5rem",
+                "xl": "0.75rem",
+                "full": "9999px"
+            },
+            "fontFamily": {
+                "headline": ["Manrope"],
+                "body": ["Inter"],
+                "label": ["Inter"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        .font-headline { font-family: 'Manrope', sans-serif; }
+        .glass-panel {
+            background: rgba(46, 53, 63, 0.4);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+        .oceanic-glow {
+            box-shadow: 0 20px 40px rgba(0, 209, 255, 0.08);
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background selection:bg-primary/30">
+<header class="fixed top-0 w-full z-50 bg-slate-900/40 backdrop-blur-xl flex justify-between items-center px-8 h-20 w-full shadow-[0_20px_40px_rgba(0,209,255,0.08)]">
+<div class="flex items-center gap-8">
+<span class="text-2xl font-black text-white tracking-tighter font-headline">HORIZON</span>
+<nav class="hidden md:flex gap-6">
+<a class="font-headline tracking-tight text-cyan-400 border-b-2 border-cyan-400 pb-1" href="#">Marketplace</a>
+<a class="font-headline tracking-tight text-slate-400 hover:text-white transition-colors" href="#">Vessels</a>
+<a class="font-headline tracking-tight text-slate-400 hover:text-white transition-colors" href="#">Contracts</a>
+<a class="font-headline tracking-tight text-slate-400 hover:text-white transition-colors" href="#">Logistics</a>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<div class="relative hidden lg:block">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">search</span>
+<input class="bg-surface-container-lowest border-none border-b-2 border-outline-variant/15 text-sm py-2 pl-10 pr-4 w-64 focus:ring-0 focus:border-cyan-400 transition-all rounded-t-lg" placeholder="Search operations..." type="text"/>
+</div>
+<button class="p-2 text-slate-400 hover:text-cyan-400 transition-colors">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button class="p-2 text-slate-400 hover:text-cyan-400 transition-colors">
+<span class="material-symbols-outlined" data-icon="anchor">anchor</span>
+</button>
+<img alt="Chief Engineer Profile" class="w-10 h-10 rounded-full border border-outline-variant/30" data-alt="Portrait of a professional maritime engineer with grey hair and beard, wearing a navy uniform in a tech-focused office environment." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCeiNNnwQEuuRxgyvPYkLmQiqfqmEy3UqcDNkctVYRWkMtNv9PKVKvpE8t8KgVH-W6oEdEDFbWzKYvvUuwYQvjPJOaZjrOlUO_LaJas63gXsY4YLCoMgUfjxPi5dJ3HWBuztfOE-nthHCGdM-LymxYmh0FjTslL8DLhAD60XwOvtRIRUFdPIdB3AOf_KShB2XuO9JdguUX2pIzmsIJyiscQQ_PeXTVhla8qo4H70g-OJ0R9zB7NN3xqS95oTvvJV_RoajBOZvbDu6J9"/>
+</div>
+</header>
+<main class="pt-20">
+<section class="relative min-h-[921px] flex items-center overflow-hidden">
+<div class="absolute inset-0 z-0">
+<div class="absolute inset-0 bg-gradient-to-r from-background via-background/80 to-transparent z-10"></div>
+<div class="absolute inset-0 bg-gradient-to-b from-transparent via-background/20 to-background z-10"></div>
+<img alt="Massive container ship at sea" class="w-full h-full object-cover grayscale opacity-40" data-alt="Massive blue container ship traversing the open ocean at dawn, misty atmosphere with soft ambient teal lighting and deep navy shadows." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBRTPSZ_hoSpi89EeKpQNvDJJm9ZyQTyNYIYYfRZfMN3KtcrnoDJ1YUwu9StxwuvHLoM5DwXGvedrHecXvLyN8PDeA-2XnZjwaJxAubBHxbD6EQb94YXf3seUANk7v8ptUC1xjMdkjbs6WXNAUvqeGusnj4oMlI91ffyuyDiuDoWVk0Q2E52mbPEQPcFU_rkhPurUOxri6DCEGe3bF833kY1IDlBvA7VeLLJ47hZjwXCXEHLLLY2NUZu58XNPSyOQ4fEQzKlQxSXtbI"/>
+</div>
+<div class="container mx-auto px-8 relative z-20">
+<div class="max-w-4xl">
+<span class="inline-block px-4 py-1.5 rounded-full bg-cyan-500/10 text-cyan-400 text-xs font-bold uppercase tracking-widest mb-6 font-label">
+                        Infrastructure for the Blue Economy
+                    </span>
+<h1 class="text-6xl md:text-8xl font-black font-headline text-white tracking-tighter leading-[0.9] mb-8">
+                        Powering Global <br/> <span class="text-cyan-400">Maritime</span> Operations.
+                    </h1>
+<p class="text-xl text-on-surface-variant max-w-2xl mb-10 leading-relaxed">
+                        The definitive operating system for international logistics. Secure vessel management, verified provider networks, and real-time telemetry delivered through a single glass pane.
+                    </p>
+<div class="flex flex-wrap gap-4">
+<button class="px-8 py-4 bg-gradient-to-r from-primary to-secondary text-on-primary-fixed font-bold rounded-xl active:scale-95 transition-all shadow-xl oceanic-glow">
+                            Explore Services
+                        </button>
+<button class="px-8 py-4 glass-panel border border-white/10 text-white font-bold rounded-xl active:scale-95 transition-all hover:bg-white/10">
+                            Register Vessel
+                        </button>
+</div>
+</div>
+</div>
+</section>
+<section class="py-12 bg-surface-container-lowest border-y border-outline-variant/10">
+<div class="container mx-auto px-8">
+<div class="grid grid-cols-1 md:grid-cols-3 gap-12">
+<div class="flex flex-col">
+<span class="text-5xl font-black font-headline text-white mb-2">240+</span>
+<span class="text-sm font-label uppercase tracking-widest text-on-surface-variant">Active Global Ports</span>
+</div>
+<div class="flex flex-col">
+<span class="text-5xl font-black font-headline text-cyan-400 mb-2">1,500+</span>
+<span class="text-sm font-label uppercase tracking-widest text-on-surface-variant">Verified Providers</span>
+</div>
+<div class="flex flex-col">
+<span class="text-5xl font-black font-headline text-white mb-2">50k+</span>
+<span class="text-sm font-label uppercase tracking-widest text-on-surface-variant">Jobs Completed</span>
+</div>
+</div>
+</div>
+</section>
+<section class="py-32 relative bg-surface-dim">
+<div class="absolute top-0 right-0 w-1/3 h-full bg-cyan-500/5 blur-[120px] pointer-events-none"></div>
+<div class="container mx-auto px-8">
+<div class="flex flex-col md:flex-row justify-between items-end mb-24 gap-8">
+<div class="max-w-2xl">
+<h2 class="text-4xl md:text-5xl font-black font-headline text-white tracking-tight mb-6">Built for the Depths of Modern Trade</h2>
+<p class="text-lg text-on-surface-variant">We solve the structural inefficiencies of the sea through advanced telemetry and cryptographic trust protocols.</p>
+</div>
+<div class="h-px flex-grow bg-outline-variant/20 mx-8 hidden md:block"></div>
+<span class="material-symbols-outlined text-cyan-400 text-6xl opacity-20">hub</span>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+<div class="md:col-span-7 glass-panel p-12 rounded-3xl oceanic-glow group hover:bg-white/5 transition-all">
+<div class="mb-8 p-4 bg-cyan-500/10 rounded-2xl inline-block">
+<span class="material-symbols-outlined text-cyan-400 text-4xl" data-icon="verified_user" style="font-variation-settings: 'FILL' 1;">verified_user</span>
+</div>
+<h3 class="text-3xl font-bold font-headline text-white mb-4">Verified Trust</h3>
+<p class="text-on-surface-variant text-lg leading-relaxed mb-8">Every provider in our network undergoes a rigorous 12-point authentication process, ensuring compliance with international maritime standards and safety regulations.</p>
+<div class="flex items-center gap-4 text-cyan-400 font-bold group-hover:translate-x-2 transition-transform">
+<span>Learn about Compliance</span>
+<span class="material-symbols-outlined">arrow_forward</span>
+</div>
+</div>
+<div class="md:col-span-5 bg-surface-container-high p-12 rounded-3xl flex flex-col justify-between group hover:bg-surface-bright transition-all">
+<div>
+<div class="mb-8 p-4 bg-primary/10 rounded-2xl inline-block">
+<span class="material-symbols-outlined text-primary text-4xl" data-icon="real_time_tracking">monitoring</span>
+</div>
+<h3 class="text-3xl font-bold font-headline text-white mb-4">Real-time Logistics</h3>
+<p class="text-on-surface-variant leading-relaxed">Live telemetry syncing from vessel AIS to ground operations without the 15-minute latency typical of legacy systems.</p>
+</div>
+<div class="mt-12 flex -space-x-4">
+<img alt="User" class="w-12 h-12 rounded-full border-4 border-surface-container-high" data-alt="Close up portrait of a ship captain in uniform" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD-asY92nYtxQWtkQtOyotF2YSVo08sPAsOqGpiIgF_jc7CMtAmHEzHzcjPvRXLsIZxmwRCl-9_4V5YFmUpbXZP-IDruyEF9wm99rcH4l8o-F4-EhPff7yUq6BSkbtnZWmL7G2--VFB0w5RMlPryBIrpefKWeRVWMFH0Mi8I1Ud45Hqu9HbB01nI1ynxxRKbrBgyRoetkywsvM7fSc3Um2fYykRAzfy8FQTvFkNjryYlwA4y4Sex0ZaranfDi-gpR0mUyGUytu5n5oc"/>
+<img alt="User" class="w-12 h-12 rounded-full border-4 border-surface-container-high" data-alt="Professional logistics coordinator in tech office" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCD5efQ-7mPKt_9VIMAXAyHUDC7XKmAdShAA_8eNbEJWNC4cymtJ9H4YQGAx62N0ZGXREwHoLw7rRZbS8K-1O1SNzvL7EAQAj7YaunhLTEK9m-E4VR9j08ot2UYyYD1I-4_o5zfey-XGNHjV5oPEwCW-bEN1xFB-qwfVkVTsLZmZz-9TYf4DIP56VI8KmyX3HpAEydhAXB6FqiHP2ySS5elzmNMokKWWUYzRoOMQhAUyH6xfBOH_BcF5Q1ZAS9zxoDX1YYf3JsY-dW6"/>
+<div class="w-12 h-12 rounded-full bg-cyan-500/20 border-4 border-surface-container-high flex items-center justify-center text-xs font-bold text-cyan-400">+12</div>
+</div>
+</div>
+<div class="md:col-span-12 glass-panel p-12 rounded-3xl flex flex-col md:flex-row items-center gap-12 overflow-hidden group">
+<div class="flex-1">
+<h3 class="text-3xl font-bold font-headline text-white mb-4">Global Infrastructure</h3>
+<p class="text-on-surface-variant text-lg max-w-xl mb-8">Deploy resources across continents. Our API connects port authority data with private terminal operators, bridging the gap between national infrastructure and commercial speed.</p>
+<button class="px-6 py-3 border-b-2 border-cyan-400 text-cyan-400 font-bold uppercase tracking-widest text-xs font-label">View Network Map</button>
+</div>
+<div class="flex-1 relative h-64 w-full">
+<div class="absolute inset-0 bg-gradient-to-t from-background to-transparent z-10"></div>
+<div class="absolute inset-0 rounded-2xl overflow-hidden grayscale contrast-125 opacity-30">
+<img alt="World Map Tech" class="w-full h-full object-cover" data-alt="Abstract glowing world map showing maritime trade routes with glowing cyan lines on a dark navy background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDxnF2Z5U2-JMxTfzJwfPvoWWEjynzkWRn2wTd9eKjwvp5BoUyu51GTO_vbD9kZBrreyM1jc0ciSvL4JYHEaLjK3SgjPp7NsLyKjVIu2dTMfzicEys2-AUIPA0npHG81apiIrW5u0rRe8jx_TtrAcrOOg4yq7ROPNQl0GML6Ays33kzn0AzaN0DkgO6WK37NjpRjrFTYJvG3ZHGd2w8N1sMG0QI-7N7D1vAQJViMZIhoC6QeTQZIK0Z4f2a5XgwBrNCq5ib-A7Fw6XO"/>
+</div>
+<div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 bg-cyan-400 rounded-full animate-ping"></div>
+<div class="absolute top-1/3 left-1/4 w-2 h-2 bg-cyan-400 rounded-full"></div>
+<div class="absolute bottom-1/4 right-1/3 w-2 h-2 bg-cyan-400 rounded-full"></div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<section class="py-24 bg-surface-container-lowest overflow-hidden">
+<div class="container mx-auto px-8">
+<div class="bg-gradient-to-br from-primary-container to-surface-container-high rounded-[3rem] p-12 md:p-24 relative">
+<div class="absolute -bottom-24 -right-24 w-96 h-96 bg-cyan-500/10 blur-[100px] rounded-full"></div>
+<div class="relative z-10 max-w-3xl">
+<h2 class="text-5xl md:text-7xl font-black font-headline text-white tracking-tighter mb-8">Ready to navigate the <span class="text-cyan-400">next era</span>?</h2>
+<p class="text-xl text-on-surface-variant mb-12 leading-relaxed">Join the network of over 1,500 shipping leaders already optimizing their operations on the Horizon platform.</p>
+<div class="flex flex-col sm:flex-row gap-6">
+<button class="px-10 py-5 bg-white text-slate-900 font-bold rounded-2xl hover:bg-cyan-400 transition-colors">Start Your Journey</button>
+<button class="px-10 py-5 glass-panel border border-white/20 text-white font-bold rounded-2xl hover:bg-white/10 transition-colors">Schedule a Demo</button>
+</div>
+</div>
+</div>
+</div>
+</section>
+</main>
+<footer class="bg-slate-950/80 border-t border-outline-variant/10 py-20">
+<div class="container mx-auto px-8">
+<div class="grid grid-cols-1 md:grid-cols-4 gap-12">
+<div class="col-span-1 md:col-span-1">
+<span class="text-3xl font-black text-white tracking-tighter font-headline">HORIZON</span>
+<p class="mt-6 text-slate-500 leading-relaxed">The global standard for maritime business-to-business infrastructure and logistics orchestration.</p>
+</div>
+<div>
+<h4 class="text-white font-bold mb-8 font-headline uppercase tracking-widest text-xs">Solutions</h4>
+<ul class="space-y-4 text-slate-400">
+<li><a class="hover:text-cyan-400 transition-colors" href="#">Fleet Management</a></li>
+<li><a class="hover:text-cyan-400 transition-colors" href="#">Digital Charters</a></li>
+<li><a class="hover:text-cyan-400 transition-colors" href="#">Bunker Procurement</a></li>
+<li><a class="hover:text-cyan-400 transition-colors" href="#">Port Services</a></li>
+</ul>
+</div>
+<div>
+<h4 class="text-white font-bold mb-8 font-headline uppercase tracking-widest text-xs">Infrastructure</h4>
+<ul class="space-y-4 text-slate-400">
+<li><a class="hover:text-cyan-400 transition-colors" href="#">API Documentation</a></li>
+<li><a class="hover:text-cyan-400 transition-colors" href="#">Satellite Telemetry</a></li>
+<li><a class="hover:text-cyan-400 transition-colors" href="#">Edge Nodes</a></li>
+<li><a class="hover:text-cyan-400 transition-colors" href="#">Security Specs</a></li>
+</ul>
+</div>
+<div>
+<h4 class="text-white font-bold mb-8 font-headline uppercase tracking-widest text-xs">Company</h4>
+<ul class="space-y-4 text-slate-400">
+<li><a class="hover:text-cyan-400 transition-colors" href="#">About Horizon</a></li>
+<li><a class="hover:text-cyan-400 transition-colors" href="#">Global Network</a></li>
+<li><a class="hover:text-cyan-400 transition-colors" href="#">Contact Operations</a></li>
+<li><a class="hover:text-cyan-400 transition-colors" href="#">Trust Center</a></li>
+</ul>
+</div>
+</div>
+<div class="mt-20 pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-8">
+<p class="text-slate-600 text-sm">© 2024 HORIZON Maritime Systems Inc. All rights reserved.</p>
+<div class="flex gap-8 text-slate-600 text-sm">
+<a class="hover:text-white transition-colors" href="#">Privacy Policy</a>
+<a class="hover:text-white transition-colors" href="#">Terms of Service</a>
+<a class="hover:text-white transition-colors" href="#">Legal</a>
+</div>
+</div>
+</div>
+</footer>
+</body></html>
+
+

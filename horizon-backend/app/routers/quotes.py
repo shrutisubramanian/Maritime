@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.middleware.auth_guard import get_current_user, get_current_client, get_current_provider
 from app.models.user import User
-from app.schemas.quote import QuoteCreate, QuoteResponse
+from app.schemas.quote import QuoteCreate, QuoteResponse, QuoteWithRequestResponse, QuoteUpdate
 from app.services.quote_service import QuoteService
 
 router = APIRouter(
@@ -41,6 +41,16 @@ def create_quote(
     )
 
 
+@router.get("/my-quotations", response_model=List[QuoteWithRequestResponse], summary="Get all quotations submitted by the logged-in provider")
+def get_my_quotations(
+    db: Session = Depends(get_db),
+    current_provider: User = Depends(get_current_provider)
+):
+    """
+    Retrieve a list of all quotes submitted by the current provider.
+    """
+    return QuoteService.get_quotes_for_provider(db=db, provider_id=current_provider.id)
+
 @router.get("/request/{request_id}", response_model=List[QuoteResponse], summary="Get all quotes for a specific request")
 def get_quotes_for_request(
     request_id: uuid.UUID,
@@ -70,6 +80,28 @@ def get_quote(
     - Authenticated users (either clients or providers) can view a specific quote.
     """
     return QuoteService.get_quote_by_id(db=db, quote_id=quote_id)
+
+
+@router.put("/{quote_id}", response_model=QuoteResponse, summary="Update a draft quote")
+def update_quote(
+    quote_id: uuid.UUID,
+    update_data: QuoteUpdate,
+    db: Session = Depends(get_db),
+    current_provider: User = Depends(get_current_provider)
+):
+    """
+    Update an existing draft quote.
+    
+    **Authorization Flow**:
+    - The `get_current_provider` dependency ensures only providers can access this route.
+    - `QuoteService` verifies that the provider owns the quote and it is in a draft or submitted state.
+    """
+    return QuoteService.update_quote(
+        db=db,
+        quote_id=quote_id,
+        provider_id=current_provider.id,
+        update_data=update_data
+    )
 
 
 @router.put("/{quote_id}/accept", response_model=QuoteResponse, summary="Accept a quote")

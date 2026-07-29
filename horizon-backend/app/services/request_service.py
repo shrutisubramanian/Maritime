@@ -9,6 +9,8 @@ from app.models.user import User, UserRole
 from app.models.request import ServiceRequest, UrgencyLevel, RequestStatus
 from app.schemas.request import ServiceRequestCreate, ServiceRequestUpdate
 from app.models.service_category import ServiceCategory
+from app.services.notification_service import NotificationService
+from app.models.notification import NotificationType
 
 class ServiceRequestService:
     """
@@ -48,6 +50,16 @@ class ServiceRequestService:
             db.add(db_request)
             db.commit()
             db.refresh(db_request)
+            
+            # Trigger Notification
+            NotificationService.create_notification(
+                db=db,
+                user_id=user_id,
+                title="Request Created",
+                message=f"Your service request '{db_request.title}' is now live on the marketplace.",
+                notification_type=NotificationType.request
+            )
+            
             return db_request
         except Exception:
             db.rollback()

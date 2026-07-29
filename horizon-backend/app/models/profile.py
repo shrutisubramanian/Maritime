@@ -41,8 +41,18 @@ class Profile(Base):
     years_experience: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     
     # Complex Data stored natively in PostgreSQL JSONB
-    skills: Mapped[list[str] | None] = mapped_column(JSON, nullable=True, comment="List of technical or maritime skills")
     ports_served: Mapped[list[str] | None] = mapped_column(JSON, nullable=True, comment="List of ports where the provider operates")
+    
+    # 1-to-Many Relationship to dedicated Service model
+    services: Mapped[list["Service"]] = relationship("Service", back_populates="provider", cascade="all, delete-orphan")
+    
+    # Extended Company Profile Data
+    contacts: Mapped[list[dict] | None] = mapped_column(JSON, nullable=True, comment="List of contacts (name, email, phone)")
+    licenses: Mapped[list[str] | None] = mapped_column(JSON, nullable=True, comment="List of licenses")
+    team: Mapped[list[dict] | None] = mapped_column(JSON, nullable=True, comment="List of team members")
+    offices: Mapped[list[str] | None] = mapped_column(JSON, nullable=True, comment="List of office locations")
+    social_links: Mapped[dict | None] = mapped_column(JSON, nullable=True, comment="Social media URLs")
+    profile_metadata: Mapped[dict | None] = mapped_column(JSON, nullable=True, comment="Custom maritime profile metadata")
     
     # Status Enums
     availability_status: Mapped[AvailabilityStatus] = mapped_column(

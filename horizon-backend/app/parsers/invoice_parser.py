@@ -4,35 +4,36 @@ import re
 class InvoiceParser:
 
     @staticmethod
-    def parse(text: str):
+    def _match(pattern, text):
+        m = re.search(pattern, text, re.IGNORECASE | re.DOTALL)
+        if m:
+            return " ".join(m.group(1).split()).strip()
+        return None
 
-        data = {}
+    @classmethod
+    def extract(cls, text):
 
-        invoice = re.search(
-            r"Invoice No\.?\s*:?\s*(.+)",
-            text,
-            re.IGNORECASE
-        )
-
-        if invoice:
-            data["invoice_number"] = invoice.group(1).strip()
-
-        gst = re.search(
-            r"GSTIN\s*:?\s*([A-Z0-9]+)",
-            text,
-            re.IGNORECASE
-        )
-
-        if gst:
-            data["gstin"] = gst.group(1).strip()
-
-        date = re.search(
-            r"Date\s*:?\s*([0-9\-\/]+)",
-            text,
-            re.IGNORECASE
-        )
-
-        if date:
-            data["invoice_date"] = date.group(1).strip()
-
-        return data
+        return {
+            "supplier_name": None,
+            "supplier_gstin": None,
+            "supplier_pan": None,
+            "invoice_number": None,
+            "invoice_date": None,
+            "recipient_name": None,
+            "recipient_gstin": None,
+            "place_of_supply": None,
+            "irn": None,
+            "eway_bill_number": None,
+            "description": None,
+            "hsn_code": None,
+            "quantity": None,
+            "rate": None,
+            "taxable_value": None,
+            "cgst": None,
+            "sgst": None,
+            "igst": None,
+            "total_invoice_amount": None,
+            "bank_name": None,
+            "account_number": None,
+            "ifsc": None,
+        }

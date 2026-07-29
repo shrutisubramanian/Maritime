@@ -6,8 +6,12 @@ from app.services.ocr_service import process_document
 
 # Map test folder names to internal document type IDs
 DOC_TYPE_MAP = {
-    "vendor": "vendor_registration"
+    "vendor": "vendor_registration",
+    "form_10f": "form_10f",
+    "no_pe": "no_pe_declaration"
 }
+
+
 
 def get_test_cases():
     """
@@ -65,3 +69,72 @@ def test_document_parser(doc_type, ext, file_path, expected):
         assert parsed_data["vendor_name"] == "Atlantic Marine Engineering Pvt. Ltd."
         assert parsed_data["gst"] == "27AABCA1234B1Z3"
         assert parsed_data["pan"] == "AABCA1234B"
+
+
+def test_form_10f_parser_mock():
+    from app.parsers.form10f_parser import Form10FParser
+
+    mock_form10f_text = """
+    Form No. 10F
+    I Rajesh Kumar on behalf of vendor Atlantic Marine Engineering Pvt. Ltd. (Corporate Reg. no. MFCR-MH-2009-00478) do hereby declare...
+    Status (permanent or temporary): Private Limited Company (ii)
+    Permanent Account Number (PAN): AABCA1234B (iii)
+    Nationality: Indian (iv)
+    tax identification number: TIN-12345 (v)
+    applicable: 2025-2026 (vi)
+    Address of the assessee: 302, Nariman Point, Mumbai 2.
+    This is issued under Government of India.
+    Name: Rajesh Kumar Address: 302, Nariman Point, Mumbai
+    Permanent Account Number: AABCA1234B
+    Verified today the 16th day of July, 2026.
+    For the financial year 2025-26.
+    """
+
+    data = Form10FParser.extract(mock_form10f_text)
+
+    assert data["vendor_name"] == "Atlantic Marine Engineering Pvt. Ltd."
+    assert data["registration_number"] == "MFCR-MH-2009-00478"
+    assert data["status"] == "Private Limited Company"
+    assert data["pan"] == "AABCA1234B"
+    assert data["country"] == "Indian"
+    assert data["tax_identification_number"] == "TIN-12345"
+    assert data["residential_period"] == "2025-2026"
+    assert data["address"] == "302, Nariman Point, Mumbai"
+    assert data["government"] == "India"
+    assert data["signatory_name"] == "Rajesh Kumar"
+    assert data["signatory_pan"] == "AABCA1234B"
+    assert data["verification_date"] == "16th day of July, 2026."
+    assert data["financial_year"] == "2025-26"
+
+
+def test_no_pe_parser_mock():
+    from app.parsers.no_pe_parser import NoPEParser
+
+    mock_no_pe_text = """
+    We, Atlantic Marine Engineering Pvt. Ltd. (Corporate Reg. no. MFCR-MH-2009-00478), registered address at Plot No. 7, Marine Drive, Mumbai, India, is a limited company...
+    tax resident in India as per the tax laws...
+    under India-Singapore Double Taxation Avoidance Agreement...
+    The assessee does not have a permanent establishment in India...
+    The assessee does not have any business connection in India...
+    The title of goods/services is passed outside India...
+    Name: Rajesh Kumar
+    Title: Managing Director
+    Declaration for the period 2025-2026
+    """
+
+    data = NoPEParser.extract(mock_no_pe_text)
+
+    assert data["vendor_name"] == "Atlantic Marine Engineering Pvt. Ltd."
+    assert data["registration_number"] == "MFCR-MH-2009-00478"
+    assert data["registered_address"] == "Plot No. 7, Marine Drive, Mumbai, India"
+    assert data["country"] == "India"
+    assert data["tax_residency"] == "India"
+    assert data["dtaa_country"] == "Singapore"
+    assert data["permanent_establishment"] == "No"
+    assert data["business_connection"] == "No"
+    assert data["goods_passed_outside_india"] == "Yes"
+    assert data["signatory_name"] == "Rajesh Kumar"
+    assert data["signatory_title"] == "Managing Director"
+    assert data["declaration_period"] == "2025-2026"
+
+

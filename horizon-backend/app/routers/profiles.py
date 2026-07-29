@@ -171,4 +171,4 @@ def get_profile_by_id(
     2. Uses `ProfileService` to query the database.
     3. If the profile doesn't exist, the service throws a 404.
     """
-    return ProfileService.get_profile_by_id(db=db, profile_id=profile_id)
+    return ProfileService.get_profile_by_id(db=db, profile_id=profile_id, current_user=current_user)

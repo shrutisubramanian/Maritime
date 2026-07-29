@@ -1,9 +1,13 @@
+from fastapi import HTTPException
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models.user import User
-from app.schemas.auth import RegisterRequest, LoginRequest, TokenResponse, UserResponse
+from app.schemas.auth import (
+    RegisterRequest, LoginRequest, TokenResponse, UserResponse,
+    RefreshTokenRequest, ForgotPasswordRequest, ResetPasswordRequest, VerifyEmailRequest
+)
 from app.services.auth_service import AuthService
 from app.middleware.auth_guard import get_current_user
 
@@ -63,3 +67,60 @@ def get_me(current_user: User = Depends(get_current_user)):
     5. The route simply returns the user object, which Pydantic converts to `UserResponse`.
     """
     return current_user
+
+@router.post("/refresh", response_model=TokenResponse, summary="Refresh access token")
+def refresh_token(request: RefreshTokenRequest, db: Session = Depends(get_db)):
+    """
+    Exchanges a valid refresh token for a new access token and refresh token.
+    """
+    return AuthService.refresh_access_token(db=db, refresh_token=request.refresh_token)
+
+@router.post("/forgot-password", status_code=status.HTTP_200_OK, summary="Request password reset")
+def forgot_password(request: ForgotPasswordRequest, db: Session = Depends(get_db)):
+    """
+    Initiates the password reset flow.
+    Mocks sending an email by printing the reset token to the console.
+    """
+    user = AuthService.get_user_by_email(db, request.email)
+    if user:
+        reset_token = AuthService.generate_password_reset_token(user.email)
+        print(f"\n[MOCK EMAIL] To reset password for {user.email}, use token: {reset_token}\n")
+    # Always return success to prevent email enumeration
+    return {"message": "If that email exists, a password reset link has been sent."}
+
+@router.post("/reset-password", status_code=status.HTTP_200_OK, summary="Reset password using token")
+def reset_password(request: ResetPasswordRequest, db: Session = Depends(get_db)):
+    """
+    Resets the user's password using the token received via email.
+    """
+    success = AuthService.reset_password(db=db, token=request.token, new_password=request.new_password)
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired reset token."
+        )
+    return {"message": "Password has been successfully reset."}
+
+@router.post("/verify-email", status_code=status.HTTP_200_OK, summary="Verify user email")
+def verify_email(request: VerifyEmailRequest, db: Session = Depends(get_db)):
+    """
+    Verifies the user's email address using the token received via email.
+    """
+    success = AuthService.verify_email_token(db=db, token=request.token)
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired verification token."
+        )
+    return {"message": "Email has been successfully verified."}
+
+@router.post("/resend-verification", status_code=status.HTTP_200_OK, summary="Resend verification email")
+def resend_verification(request: ForgotPasswordRequest, db: Session = Depends(get_db)):
+    """
+    Resends the email verification link.
+    """
+    user = AuthService.get_user_by_email(db, request.email)
+    if user and not user.is_verified:
+        verification_token = AuthService.generate_verification_token(user.email)
+        print(f"\n[MOCK EMAIL] To verify email for {user.email}, use token: {verification_token}\n")
+    return {"message": "If that email exists and is unverified, a new verification link has been sent."}

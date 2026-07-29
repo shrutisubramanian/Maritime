@@ -1,4 +1,5 @@
 import uuid
+from typing import Optional
 from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
@@ -6,6 +7,8 @@ from fastapi import HTTPException, status
 from app.models.job import Job, JobStatus
 from app.models.quote import Quote, QuoteStatus
 from app.models.request import ServiceRequest, RequestStatus
+from app.services.notification_service import NotificationService
+from app.models.notification import NotificationType
 
 
 class JobService:
@@ -81,13 +84,19 @@ class JobService:
         return job_obj
 
     @staticmethod
-    def get_all_jobs_for_user(db: Session, user_id: uuid.UUID) -> list[Job]:
+    def get_all_jobs_for_user(db: Session, user_id: uuid.UUID, status: Optional[JobStatus] = None) -> list[Job]:
         """
         Retrieve all jobs associated with a specific user (either as the provider or the client).
+        Optionally filter by job status.
         """
-        return db.query(Job).join(ServiceRequest, Job.request_id == ServiceRequest.id).filter(
+        query = db.query(Job).join(ServiceRequest, Job.request_id == ServiceRequest.id).filter(
             (Job.provider_id == user_id) | (ServiceRequest.client_id == user_id)
-        ).all()
+        )
+        
+        if status:
+            query = query.filter(Job.status == status)
+            
+        return query.all()
 
     @staticmethod
     def complete_job(db: Session, job_id: uuid.UUID, user_id: uuid.UUID) -> Job:
@@ -120,6 +129,17 @@ class JobService:
                 
             db.commit()
             db.refresh(job_obj)
+            
+            # Notify the other party
+            notify_user_id = service_request.client_id if user_id == job_obj.provider_id else job_obj.provider_id
+            NotificationService.create_notification(
+                db=db,
+                user_id=notify_user_id,
+                title="Job Completed",
+                message=f"The job for '{service_request.title}' has been marked as completed. You can now leave a review.",
+                notification_type=NotificationType.job
+            )
+            
             return job_obj
         except Exception:
             db.rollback()

@@ -2,6 +2,7 @@ import uuid
 from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict
+from typing import Optional
 
 from app.models.notification import NotificationType
 
@@ -14,8 +15,11 @@ class NotificationResponse(BaseModel):
     message: str
 
     type: NotificationType
-
-    is_read: bool
+    priority: str = "normal"
+    related_entity: Optional[str] = None
+    related_entity_id: Optional[uuid.UUID] = None
+    is_read: bool = False
+    is_archived: bool = False
 
     created_at: datetime
 
