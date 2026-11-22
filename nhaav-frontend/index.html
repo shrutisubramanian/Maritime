@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- Icons are generated from the official NHAAV logo (public/brand/). -->
+    <!-- A root /favicon.ico also exists (public/favicon.ico) so browsers and
+         tools that request it by convention get a real icon instead of a 404. -->
+    <link rel="icon" type="image/svg+xml" href="/favicon/favicon.svg" />
+    <link rel="icon" type="image/x-icon" href="/favicon/favicon.ico" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon/favicon-96x96.png" />
+    <link rel="icon" type="image/png" sizes="96x96" href="/favicon/favicon-96x96.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/favicon/apple-touch-icon.png" />
+    <link rel="manifest" href="/favicon/site.webmanifest" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Nhaav — Powering Maritime Procurement</title>
+    <!--
+      Default metadata. SeoManager (src/seo) replaces these per route at runtime;
+      these values are what a crawler that does not execute JavaScript sees, and
+      what link previews read for the site root.
+    -->
+    <meta
+      name="description"
+      content="Nhaav connects ship owners and maritime businesses with verified service providers and suppliers. Discover companies, request quotations and manage maritime procurement in one place."
+    />
+    <meta name="robots" content="index,follow" />
+    <meta name="theme-color" content="#0B1C2C" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Nhaav" />
+    <meta property="og:title" content="Nhaav — Powering Maritime Procurement" />
+    <meta
+      property="og:description"
+      content="Discover verified maritime companies, request quotations and manage procurement on one network."
+    />
+    <meta property="og:locale" content="en_IN" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Nhaav — Powering Maritime Procurement" />
+    <meta name="twitter:description" content="Discover verified maritime companies, request quotations and manage procurement on one network." />
+    <!--
+      Theme boot: apply the persisted theme BEFORE first paint.
+
+      The theme class used to be hardcoded to "dark" on <html>, while
+      ThemeContext defaults to "light" and only set the class inside a
+      post-paint useEffect. Every load therefore painted dark and then
+      flipped to light (a flash of the wrong theme). This script lives in
+      /theme-init.js (NOT inline) so the production CSP can forbid inline
+      scripts; it still runs synchronously in <head>, so the correct class is
+      present for the very first paint. Must stay in sync with the
+      localStorage key and default in src/context/ThemeContext.tsx.
+    -->
+    <script src="/theme-init.js"></script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;700;800&family=Inter:wght@300;400;500;600&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&family=Inter:wght@100..900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <!-- Material Symbols -->
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

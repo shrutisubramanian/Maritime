@@ -1,0 +1,38 @@
+node_modules
+
+# ── Environment files ────────────────────────────────────────────────────────
+# Ignore .env AND every rotation/backup copy (.env.bak-*, .env.production, …):
+# those hold JWT_SECRET, the database password and the SMTP password. The
+# template stays committed because it only ever contains placeholders.
+.env
+.env*
+!.env.example
+!.env.sample
+!.env.template
+
+/app/generated/prisma
+
+# Local admin credentials written by app.seed_admin (never commit)
+.admin-credentials.txt
+
+# ── Local databases ─────────────────────────────────────────────────────────
+# SQLite files hold real accounts and bcrypt hashes; journals/WALs and dated
+# backups (.db.bak-*) are copies of the same data.
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+*.db.bak*
+*.db.bak-*
+
+# ── User-uploaded documents ──────────────────────────────────────────────────
+# KYC packs, vendor registration forms, invoices and payment receipts. Private:
+# served only through authorized API endpoints, never from a static mount, and
+# never from version control.
+uploads/
+uploads/**
+
+# Company brochures are user-uploaded business documents too: private, served
+# only through the authorized marketplace endpoint, never committed.
+profile_brochures/
+profile_brochures/**

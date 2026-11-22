@@ -1,0 +1,447 @@
+"""H2 migration tests.
+
+Proves the Alembic workflow is self-consistent against SQLite (the only
+dialect available in CI here):
+
+* a fresh database can be migrated base -> head with all tables/constraints
+* enum members added by the reconciliation migration are accepted
+* existing data survives an upgrade, with documented server defaults backfilled
+* the adoption path (schema already present out of band, stamped to old head)
+  is a safe no-op and preserves data
+* upgrade is repeatable and downgrade is reversible where supported
+* application startup does NOT call Base.metadata.create_all
+
+PostgreSQL-native behavior (ALTER TYPE ... ADD VALUE) is only exercised in the
+migration script itself; it cannot be verified without a real PostgreSQL
+database (see the H2 deployment-notes paragraph in the report).
+"""
+import os
+import subprocess
+import sys
+import uuid
+from datetime import datetime
+from pathlib import Path
+
+import pytest
+from alembic import command
+from alembic.config import Config
+from sqlalchemy import create_engine, inspect, text
+from sqlalchemy.orm import sessionmaker
+
+from app.config import settings
+from app.models.document import Document, DocumentType
+from app.models.profile import Profile, VerificationStatus
+from app.models.user import User
+
+BACKEND_DIR = Path(__file__).resolve().parents[1]
+ALEMBIC_INI = BACKEND_DIR / "alembic.ini"
+
+# Revision chain (see alembic/versions)
+OLD_HEAD = "3f3cfac91e8a"
+# e7a8b9c0d1e2 (H9) drops the orphan reports/support_tickets/favorite_providers
+# tables; its own downgrade is a documented no-op, so the freely downgradeable
+# head is the revision below it.
+PRE_H9_HEAD = "d8e9f0a5b6c7"
+# f9a0b1c2d3e4 (H10 security) adds rate_limit_events (guarded create/index).
+HEAD = "f9a0b1c2d3e4"
+
+EXPECTED_TABLES = {
+    "quotes", "service_categories", "service_requests", "users", "documents",
+    "jobs", "notifications", "profiles",
+    "reviews", "services", "admin_accounts", "admin_audit_log",
+    "rate_limit_events",
+    "alembic_version",
+}
+
+# Tables the H9 orphan-drop migration must remove.
+H9_ORPHAN_TABLES = {"reports", "support_tickets", "favorite_providers"}
+
+
+def _alembic_config(db_url: str) -> Config:
+    """Alembic config for a specific DB URL.
+
+    env.py reads settings.DATABASE_URL at migration time and overrides the
+    ini value, so we pin the (mutable) settings attribute as well.
+    """
+    cfg = Config(str(ALEMBIC_INI))
+    cfg.set_main_option("sqlalchemy.url", db_url)
+    settings.DATABASE_URL = db_url  # env.py overrides the ini url with this
+    return cfg
+
+
+def _fresh_db(tmp_path, name="test.db") -> str:
+    return f"sqlite:///{tmp_path / name}"
+
+
+def _raw_conn(db_url):
+    """Bare sqlite3 connection for schema-agnostic row inserts/checks."""
+    import sqlite3
+    path = db_url.replace("sqlite:///", "")
+    return sqlite3.connect(str(path))
+
+
+def _insert_old_schema_rows(db_url: str) -> None:
+    """Insert representative rows at OLD_HEAD (schema as of phase_2..3f3cfac9)."""
+    conn = _raw_conn(db_url)
+    cur = conn.cursor()
+    user_id = uuid.uuid4().hex
+    now = "2026-01-01 00:00:00"
+
+    cur.execute(
+        "INSERT INTO users (id, email, password_hash, role, full_name, phone, is_verified, created_at) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        (user_id, "legacy@example.com", "hash", "provider", "Legacy Co", None, 1, now),
+    )
+
+    # profile (FK user_id -> users.id)
+    profile_key = uuid.uuid4().hex
+    cur.execute(
+        "INSERT INTO profiles (id, user_id, position, company_name, bio, years_experience, ports_served,"
+        " contacts, licenses, team, offices, social_links, availability_status, verification_status,"
+        " badge_label, rating_avg, jobs_completed, created_at, updated_at) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        (profile_key, user_id, "Director", "Legacy Co", None, 10, None, None, None, None, None, None,
+         "available", "pending", None, 4.5, 12, now, now),
+    )
+
+    # service (FK provider_id -> profiles.user_id) — old columns only
+    service_id = uuid.uuid4().hex
+    cur.execute(
+        "INSERT INTO services (id, provider_id, name, category, subcategory, description, pricing_model,"
+        " is_active, certifications_required, images, created_at, updated_at) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        (service_id, user_id, "Hull Cleaning", "Hull Inspection", None, None, "Fixed Price", 1, None, None, now, now),
+    )
+
+    # service_request (client = same user for brevity)
+    req_id = uuid.uuid4().hex
+    cur.execute(
+        "INSERT INTO service_requests (id, client_id, title, service_type, subcategory, vessel_name,"
+        " vessel_type, port, description, budget, required_completion_date, attachments,"
+        " selected_quotation_id, urgency, status, created_at, updated_at) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        (req_id, user_id, "Clean hull", "Hull Inspection", None, "MV Legacy", "Tanker", "Singapore",
+         None, 5000.0, None, None, None, "medium", "open", now, now),
+    )
+
+    # quote (FK request_id -> service_requests.id, provider_id -> users.id)
+    quote_id = uuid.uuid4().hex
+    cur.execute(
+        "INSERT INTO quotes (id, request_id, provider_id, quotation_reference, pricing_model, amount,"
+        " currency, travel_charges, emergency_charges, taxes_included, message, estimated_duration,"
+        " estimated_start_date, estimated_completion_date, warranty_period, payment_terms, attachments,"
+        " validity_date, status, created_at, updated_at) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        (quote_id, req_id, user_id, "L-001", "Fixed Price", 4500.0, "USD", 0.0, 0.0, 1, "Quote",
+         "3 days", None, None, None, None, None, None, "submitted", now, now),
+    )
+    conn.commit()
+    conn.close()
+
+
+# --------------------------------------------------------------------------
+# 1. Fresh database: base -> head
+# --------------------------------------------------------------------------
+def test_fresh_base_to_head_creates_all_tables(tmp_path):
+    db_url = _fresh_db(tmp_path)
+    cfg = _alembic_config(db_url)
+    command.upgrade(cfg, "head")
+
+    engine = create_engine(db_url, connect_args={"check_same_thread": False})
+    tables = set(inspect(engine).get_table_names())
+    engine.dispose()
+
+    assert EXPECTED_TABLES <= tables, f"Missing tables: {EXPECTED_TABLES - tables}"
+    # H9 orphan tables must be GONE after migrating to head
+    assert not (H9_ORPHAN_TABLES & tables), f"Orphan tables still present: {H9_ORPHAN_TABLES & tables}"
+    with _raw_conn(db_url) as conn:
+        version = conn.execute("SELECT version_num FROM alembic_version").fetchone()[0]
+    assert version == HEAD
+
+
+def test_head_schema_has_reconciled_columns_and_constraints(tmp_path):
+    db_url = _fresh_db(tmp_path)
+    command.upgrade(_alembic_config(db_url), "head")
+
+    engine = create_engine(db_url, connect_args={"check_same_thread": False})
+    insp = inspect(engine)
+
+    def cols(table):
+        return {c["name"] for c in insp.get_columns(table)}
+
+    assert {"service_id", "port_id", "subscription_id", "expires_at"} <= cols("services")
+    assert "scope_of_work" in cols("quotes")
+    assert {"request_type", "quantity"} <= cols("service_requests")
+
+    uq = {c["name"] for c in insp.get_unique_constraints("services")}
+    assert "uq_provider_service_port" in uq
+
+    # admin tables + their indexes
+    assert {"admin_accounts", "admin_audit_log"} <= set(insp.get_table_names())
+    admin_idx = {i["name"]: i["unique"] for i in insp.get_indexes("admin_accounts")}
+    assert "ix_admin_accounts_id" in admin_idx and not admin_idx["ix_admin_accounts_id"]
+    assert "ix_admin_accounts_email" in admin_idx and admin_idx["ix_admin_accounts_email"]
+    audit_idx = {i["name"] for i in insp.get_indexes("admin_audit_log")}
+    assert {"ix_admin_audit_log_id", "ix_admin_audit_log_admin_id"} <= audit_idx
+
+    # admin_accounts NOT NULL / nullable columns
+    admin_cols = {c["name"]: c["nullable"] for c in insp.get_columns("admin_accounts")}
+    for col in ("id", "email", "name", "password_hash", "is_active", "created_at"):
+        assert admin_cols[col] is False, f"{col} should be NOT NULL"
+    assert admin_cols["last_login"] is True
+    engine.dispose()
+
+
+def test_enums_accept_new_members_via_orm(tmp_path):
+    db_url = _fresh_db(tmp_path)
+    command.upgrade(_alembic_config(db_url), "head")
+
+    engine = create_engine(db_url, connect_args={"check_same_thread": False})
+    Session = sessionmaker(bind=engine)
+    session = Session()
+    user = User(
+        email=f"enum-{uuid.uuid4()}@example.com", password_hash="hash",
+        role="provider", full_name="Enum User", is_verified=False,
+    )
+    session.add(user)
+    session.flush()
+    profile = Profile(
+        user_id=user.id, years_experience=1, company_name="Enum Co",
+        availability_status="available", verification_status=VerificationStatus.under_review,
+        rating_avg=0.0, jobs_completed=0,
+    )
+    document = Document(
+        user_id=user.id, document_type=DocumentType.quotation,
+        file_url="uploads/test.pdf", verification_status="extracted",
+    )
+    session.add_all([profile, document])
+    session.commit()
+
+    fetched_profile = session.get(Profile, profile.id)
+    fetched_doc = session.get(Document, document.id)
+    assert fetched_profile.verification_status is VerificationStatus.under_review
+    assert fetched_doc.document_type is DocumentType.quotation
+    session.close()
+    engine.dispose()
+
+
+# --------------------------------------------------------------------------
+# 2. Existing data survives
+# --------------------------------------------------------------------------
+def test_data_survives_upgrade_from_old_head(tmp_path):
+    db_url = _fresh_db(tmp_path)
+    cfg = _alembic_config(db_url)
+    command.upgrade(cfg, OLD_HEAD)
+    _insert_old_schema_rows(db_url)
+
+    command.upgrade(cfg, "head")
+
+    engine = create_engine(db_url, connect_args={"check_same_thread": False})
+    with engine.connect() as conn:
+        assert conn.execute(text("SELECT count(*) FROM users")).scalar() == 1
+        svc = conn.execute(
+            text("SELECT service_id, port_id, subscription_id, expires_at FROM services")
+        ).fetchone()
+        assert svc == ("", "", None, None), f"Unexpected service backfill: {svc}"
+        req = conn.execute(
+            text("SELECT request_type, quantity FROM service_requests")
+        ).fetchone()
+        assert req == ("service", None), f"Unexpected request backfill: {req}"
+        quote = conn.execute(text("SELECT scope_of_work FROM quotes")).fetchone()
+        assert quote == (None,)
+        # unique constraint still intact after the upgrade
+        uq = {c["name"] for c in inspect(engine).get_unique_constraints("services")}
+        assert "uq_provider_service_port" in uq
+    engine.dispose()
+
+
+# --------------------------------------------------------------------------
+# 3. Adoption: schema already present (create_all-era DB), stamped to old head
+# --------------------------------------------------------------------------
+def _seed_full_schema_data(db_url: str) -> dict:
+    """Insert rows through the ORM against a head-schema database."""
+    engine = create_engine(db_url, connect_args={"check_same_thread": False})
+    Session = sessionmaker(bind=engine)
+    session = Session()
+    user = User(
+        email="adopt@example.com", password_hash="hash", role="provider",
+        full_name="Adopted Co", is_verified=False,
+    )
+    session.add(user)
+    session.flush()
+    user_id = user.id  # capture before commit expires attributes
+    profile = Profile(
+        user_id=user.id, years_experience=5, company_name="Adopted Co",
+        availability_status="available", verification_status=VerificationStatus.under_review,
+        rating_avg=4.2, jobs_completed=7,
+    )
+    session.add(profile)
+    session.flush()
+    admin_id = uuid.uuid4()
+    session.execute(
+        text(
+            "INSERT INTO admin_accounts (id, email, name, password_hash, is_active, created_at) "
+            "VALUES (:id, :email, :name, :hash, 1, :created)"
+        ),
+        {
+            "id": admin_id.hex if not db_url.startswith("postgres") else admin_id,
+            "email": "adopt-admin@example.com", "name": "Adopted Admin",
+            "hash": "bcrypt-hash", "created": datetime.utcnow(),
+        },
+    )
+    session.commit()
+    # capture ids BEFORE close: expire_on_commit=True would otherwise refresh
+    # from a detached session
+    ids = {"user_id": user_id, "admin_id": admin_id}
+    session.close()
+    engine.dispose()
+    return ids
+
+
+def test_adoption_schema_present_is_safe_noop(tmp_path):
+    db_url = _fresh_db(tmp_path)
+    cfg = _alembic_config(db_url)
+    command.upgrade(cfg, "head")          # full current schema
+    ids = _seed_full_schema_data(db_url)  # with real data incl. an admin row
+
+    # Simulate a create_all-era database that was stamped to the OLD migration
+    # head while already carrying the full current schema out of band.
+    command.stamp(cfg, OLD_HEAD)
+    command.upgrade(cfg, "head")          # must be a guarded no-op, no failures
+
+    engine = create_engine(db_url, connect_args={"check_same_thread": False})
+    with engine.connect() as conn:
+        assert conn.execute(text("SELECT count(*) FROM admin_accounts")).scalar() == 1
+        assert conn.execute(text("SELECT count(*) FROM profiles")).scalar() == 1
+        assert conn.execute(text("SELECT count(*) FROM admin_audit_log")).scalar() == 0
+    uq = {c["name"] for c in inspect(engine).get_unique_constraints("services")}
+    assert "uq_provider_service_port" in uq
+    engine.dispose()
+
+
+def test_upgrade_is_repeatable(tmp_path):
+    db_url = _fresh_db(tmp_path)
+    cfg = _alembic_config(db_url)
+    command.upgrade(cfg, "head")
+    command.upgrade(cfg, "head")  # second run: already at head, must not fail
+    with _raw_conn(db_url) as conn:
+        assert conn.execute("SELECT version_num FROM alembic_version").fetchone()[0] == HEAD
+
+
+# --------------------------------------------------------------------------
+# 4. Downgrade
+# --------------------------------------------------------------------------
+def test_downgrade_to_old_head_removes_changes_and_round_trips(tmp_path):
+    db_url = _fresh_db(tmp_path)
+    cfg = _alembic_config(db_url)
+    command.upgrade(cfg, "head")
+
+    # new enum value works at head
+    engine = create_engine(db_url, connect_args={"check_same_thread": False})
+    Session = sessionmaker(bind=engine)
+    session = Session()
+    user = User(email="downgrade@example.com", password_hash="h", role="client", is_verified=False)
+    session.add(user)
+    session.flush()
+    session.add(Document(
+        user_id=user.id, document_type=DocumentType.quotation,
+        file_url="uploads/x.pdf", verification_status="pending",
+    ))
+    session.commit()
+    session.close()
+    engine.dispose()
+
+    # Downgrade to the last freely-reversible revision (pre-H9). e7a8b9c0d1e2's
+    # downgrade recreates the orphan tables (documented reversibility), so the
+    # post-downgrade state must match the REAL d8e9f0a5b6c7 schema: admin
+    # tables, reconciled columns and the uq constraint are all present there.
+    command.downgrade(cfg, PRE_H9_HEAD)
+
+    engine = create_engine(db_url, connect_args={"check_same_thread": False})
+    insp = inspect(engine)
+    tables = set(insp.get_table_names())
+    assert {"admin_accounts", "admin_audit_log"} <= tables
+    assert {"service_id", "port_id", "subscription_id", "expires_at"} <= {
+        c["name"] for c in insp.get_columns("services")
+    }
+    assert "uq_provider_service_port" in {
+        c["name"] for c in insp.get_unique_constraints("services")
+    }
+    assert H9_ORPHAN_TABLES <= tables, (
+        "e7a8b9c0d1e2 downgrade must recreate the orphan tables (reversibility)"
+    )
+    engine.dispose()
+
+    # Full round-trip back to head: data survives and the H9 drop re-applies.
+    command.upgrade(cfg, "head")
+    with _raw_conn(db_url) as conn2:
+        assert conn2.execute("SELECT version_num FROM alembic_version").fetchone()[0] == HEAD
+        # the Document inserted before the downgrade survived the round trip
+        assert conn2.execute("SELECT count(*) FROM documents").fetchone()[0] == 1
+    engine2 = create_engine(db_url, connect_args={"check_same_thread": False})
+    tables_after = set(inspect(engine2).get_table_names())
+    engine2.dispose()
+    assert not (H9_ORPHAN_TABLES & tables_after), "orphan tables must be gone again at head"
+
+
+def test_admin_tables_adoption_guard_preserves_existing_rows(tmp_path):
+    """Tables created outside Alembic must not be re-created or truncated."""
+    db_url = _fresh_db(tmp_path)
+    cfg = _alembic_config(db_url)
+    command.upgrade(cfg, OLD_HEAD)
+
+    # create admin tables out of band (as a legacy create_all would)
+    conn = _raw_conn(db_url)
+    conn.execute(
+        "CREATE TABLE admin_accounts (id CHAR(32) PRIMARY KEY, email VARCHAR NOT NULL,"
+        " name VARCHAR NOT NULL, password_hash VARCHAR NOT NULL, is_active BOOLEAN NOT NULL,"
+        " created_at DATETIME NOT NULL, last_login DATETIME)"
+    )
+    conn.execute(
+        "CREATE UNIQUE INDEX ix_admin_accounts_email ON admin_accounts (email)"
+    )
+    conn.execute(
+        "CREATE TABLE admin_audit_log (id CHAR(32) PRIMARY KEY, admin_id CHAR(32) NOT NULL,"
+        " action VARCHAR NOT NULL, target_type VARCHAR, target_id VARCHAR, reason TEXT, created_at DATETIME NOT NULL)"
+    )
+    admin_id = uuid.uuid4().hex
+    conn.execute(
+        "INSERT INTO admin_accounts (id, email, name, password_hash, is_active, created_at) "
+        "VALUES (?, 'out-of-band@example.com', 'Out Of Band', 'hash', 1, '2026-01-01 00:00:00')",
+        (admin_id,),
+    )
+    conn.commit()
+    conn.close()
+
+    # now migrate: must skip table creation and keep the row
+    command.upgrade(cfg, "head")
+    with _raw_conn(db_url) as conn2:
+        count = conn2.execute("SELECT count(*) FROM admin_accounts").fetchone()[0]
+        assert count == 1
+
+
+# --------------------------------------------------------------------------
+# 5. Application startup must NOT create schema
+# --------------------------------------------------------------------------
+def test_production_startup_does_not_create_schema(tmp_path):
+    db = tmp_path / "startup.db"
+    env = os.environ.copy()
+    env["DATABASE_URL"] = f"sqlite:///{db}"
+    env["JWT_SECRET"] = "startup-test-secret"
+    env["ENVIRONMENT"] = "development"
+    code = (
+        "import sqlalchemy as sa\n"
+        "import app.main  # noqa: F401  (app startup path)\n"
+        "from app.database import engine\n"
+        "tables = set(sa.inspect(engine).get_table_names())\n"
+        "assert tables == set(), f'Tables created at startup: {tables}'\n"
+        "print('NO_TABLES_CREATED')\n"
+    )
+    result = subprocess.run(
+        [sys.executable, "-c", code],
+        cwd=str(BACKEND_DIR), env=env, capture_output=True, text=True, timeout=120,
+    )
+    assert "NO_TABLES_CREATED" in result.stdout, f"stdout={result.stdout!r} stderr={result.stderr!r}"
+    assert result.returncode == 0, result.stderr
+    # NOTE: sqlite creates the empty file on connection, so only the table-list
+    # assertion above is meaningful for "startup must not mutate schema".

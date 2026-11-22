@@ -1,0 +1,1070 @@
+diff --git a/nhaav-backend/.gitignore b/nhaav-backend/.gitignore
+index bf87131..0f3b813 100644
+--- a/nhaav-backend/.gitignore
++++ b/nhaav-backend/.gitignore
+@@ -1,5 +1,38 @@
+ node_modules
+-# Keep environment variables out of version control
++
++# ── Environment files ────────────────────────────────────────────────────────
++# Ignore .env AND every rotation/backup copy (.env.bak-*, .env.production, …):
++# those hold JWT_SECRET, the database password and the SMTP password. The
++# template stays committed because it only ever contains placeholders.
+ .env
++.env*
++!.env.example
++!.env.sample
++!.env.template
+ 
+ /app/generated/prisma
++
++# Local admin credentials written by app.seed_admin (never commit)
++.admin-credentials.txt
++
++# ── Local databases ─────────────────────────────────────────────────────────
++# SQLite files hold real accounts and bcrypt hashes; journals/WALs and dated
++# backups (.db.bak-*) are copies of the same data.
++*.db
++*.db-journal
++*.db-shm
++*.db-wal
++*.db.bak*
++*.db.bak-*
++
++# ── User-uploaded documents ──────────────────────────────────────────────────
++# KYC packs, vendor registration forms, invoices and payment receipts. Private:
++# served only through authorized API endpoints, never from a static mount, and
++# never from version control.
++uploads/
++uploads/**
++
++# Company brochures are user-uploaded business documents too: private, served
++# only through the authorized marketplace endpoint, never committed.
++profile_brochures/
++profile_brochures/**
+diff --git a/nhaav-backend/app/main.py b/nhaav-backend/app/main.py
+index f6193d1..f5ce7b4 100644
+--- a/nhaav-backend/app/main.py
++++ b/nhaav-backend/app/main.py
+@@ -1,7 +1,13 @@
+-from fastapi import FastAPI
++import secrets as _secrets
++
++from fastapi import FastAPI, Request
+ from fastapi.middleware.cors import CORSMiddleware
++from starlette.responses import JSONResponse
++
++from app.config import settings
++from app.utils.session_cookies import ACCESS_COOKIE, CSRF_COOKIE, CSRF_HEADER
+ from app.routers import documents
+-from app.database import Base, engine
++from app.database import Base
+ from app.models import *
+ 
+ from app.routers import auth, jobs, profiles, quotes, requests
+@@ -10,15 +16,86 @@ from app.routers import service_categories
+ from app.models.notification import Notification
+ from app.routers import notifications
+ from app.routers import client_procurement
++from app.routers import supplies
++from app.routers import services
++from app.routers import marketplace
++from app.routers import admin_auth
++from app.routers import admin_moderation
++from app.routers import access
++from app.routers import subscription
++from app.routers import payments
++from app.routers import admin_payments
++from app.routers import admin_verification
++from app.routers import listing_fees
++from app.routers import admin_listing_fees
++from app.routers import admin_profiles, ports, profile_visibility
++from app.routers import admin_overview
++from app.routers import admin_company_marketplace
++from app.routers import support
++
++# M-4: Alembic is the single schema authority. The startup create_all call is
++# REMOVED — application startup must not silently create missing production
++# tables or mask a missed migration. (Test suites create their own schemas.)
++
++# Import all models so Alembic autogenerate and relationship resolution see
++# the complete metadata (the wildcard import above stays for that purpose).
++assert Base.metadata is not None
++
++# ---------------------------------------------------------------------- config
++def openapi_surface(environment: str) -> dict:
++    """FastAPI docs kwargs for an environment, FAIL CLOSED on production.
++
++    Production disables Swagger UI, ReDoc *and* the OpenAPI schema together —
++    leaving the schema reachable would still expose the whole API surface.
++    The match is normalized so "Production" / " production " cannot sneak the
++    docs back in.
++    """
++    env = (environment or "").strip().lower()
++    if env == "production":
++        return {"docs_url": None, "redoc_url": None, "openapi_url": None}
++    return {"docs_url": "/docs", "redoc_url": "/redoc", "openapi_url": "/openapi.json"}
++
++
++def build_allowed_origins(raw: str) -> list[str]:
++    """Parse a comma-separated CORS origin list, stripping whitespace.
+ 
+-# Create all tables
+-Base.metadata.create_all(bind=engine)
++    'https://a.com, https://b.com ' must not yield origins with leading/trailing
++    spaces — a browser never sends those, so such an entry would silently never
++    match.
++    """
++    return [o.strip() for o in (raw or "").split(",") if o.strip()]
+ 
+-app = FastAPI(title="Horizon Maritime API")
++
++def validate_cors_config(raw: str, environment: str, origins: list[str]) -> None:
++    """Refuse credentials-unsafe or production-underspecified CORS configs."""
++    env = (environment or "").strip().lower()
++    if "*" in origins:
++        raise RuntimeError(
++            "CORS_ORIGINS='*' is not allowed with allow_credentials=True; list the "
++            "exact frontend origin(s) instead."
++        )
++    if env == "production" and not (raw or "").strip():
++        raise RuntimeError(
++            "CORS_ORIGINS must be set in production; list the exact frontend origin(s)."
++        )
++
++
++# The allow-list comes from configuration (app.config.Settings.CORS_ORIGINS);
++# build_allowed_origins/validate_cors_config above are the canonical parsing and
++# validation rules that the configuration and tests share.
++ALLOWED_ORIGINS: list[str] = list(settings.CORS_ORIGINS)
++
++# Documentation surface gating: Swagger UI, ReDoc and the OpenAPI schema are
++# disabled in production (defense in depth); they stay available in
++# development/staging for integrators.
++app = FastAPI(
++    title="Nhaav Maritime API",
++    **openapi_surface(settings.ENVIRONMENT),
++)
+ 
+ app.add_middleware(
+     CORSMiddleware,
+-    allow_origins=["http://localhost:5173", "http://localhost:3000"],
++    allow_origins=ALLOWED_ORIGINS,
+     allow_credentials=True,
+     allow_methods=["*"],
+     allow_headers=["*"],
+@@ -36,7 +113,133 @@ app.include_router(
+     notifications.router
+ )
+ app.include_router(client_procurement.router)
++app.include_router(supplies.router)
++app.include_router(services.router)
++app.include_router(marketplace.router)
++app.include_router(admin_auth.router)
++app.include_router(admin_moderation.router)
++app.include_router(access.router)
++app.include_router(subscription.router)
++app.include_router(payments.router)
++app.include_router(admin_payments.router)
++app.include_router(admin_verification.router)
++app.include_router(listing_fees.router)
++app.include_router(admin_listing_fees.router)
++# Company-first marketplace: paid PROFILE visibility + admin category control.
++app.include_router(profile_visibility.router)
++app.include_router(ports.router)
++app.include_router(admin_company_marketplace.router)
++app.include_router(admin_profiles.router)
++# Operational dashboard: real aggregates + account follow-up + procurement
++# oversight (read-only, admin-only).
++app.include_router(admin_overview.router)
++app.include_router(support.router)
++
++
++# --------------------------------------------------------------- CSRF guard
++# Cookie-authenticated requests carry the session automatically, so a state
++# change must prove it was made by the app and not by a hostile page. The client
++# copies the readable `nhaav_csrf` cookie into `X-CSRF-Token`; both must match.
++# Bearer requests (API clients, Swagger, tests) are exempt: an attacker's page
++# cannot attach a header the victim's browser does not already send.
++_CSRF_SAFE_METHODS = frozenset({"GET", "HEAD", "OPTIONS", "TRACE"})
++_CSRF_EXEMPT_PATHS = frozenset(
++    {
++        # Session-establishing / repair endpoints. A stale cookie must never be
++        # able to lock the user out of signing in again, and success still
++        # requires credentials the attacker would have to know.
++        "/auth/login",
++        "/auth/register",
++        "/auth/refresh",
++        "/auth/forgot-password",
++        "/auth/forgot-password/code",
++        "/auth/reset-password",
++        "/auth/reset-password/code",
++        "/auth/verify-email",
++        "/auth/resend-verification",
++        "/admin/auth/login",
++    }
++)
++
++
++@app.middleware("http")
++async def csrf_protection(request: Request, call_next):
++    if request.method not in _CSRF_SAFE_METHODS:
++        cookie_session = request.cookies.get(ACCESS_COOKIE)
++        bearer = request.headers.get("authorization")
++        if (
++            cookie_session
++            and not bearer
++            and request.url.path not in _CSRF_EXEMPT_PATHS
++        ):
++            sent = request.headers.get(CSRF_HEADER)
++            stored = request.cookies.get(CSRF_COOKIE)
++            if not sent or not stored or not _secrets.compare_digest(sent, stored):
++                return JSONResponse(
++                    {"detail": "CSRF token missing or invalid"}, status_code=403
++                )
++    return await call_next(request)
++
++
++@app.middleware("http")
++async def security_headers(request: Request, call_next):
++    """Baseline response hardening for every endpoint.
++
++    The API serves JSON and private file downloads, never HTML, so the goal is
++    to stop a browser from SECOND-GUESSING that: no MIME sniffing (a stored
++    file must not be re-interpreted as HTML/JS), no framing, no referrer leak of
++    internal URLs, and no ambient access to device APIs. HSTS is only sent in
++    production — on plain-HTTP localhost it would be ignored at best and would
++    lock a device out of other local projects at worst.
++    """
++    response = await call_next(request)
++    headers = response.headers
++    headers.setdefault("X-Content-Type-Options", "nosniff")
++    headers.setdefault("X-Frame-Options", "DENY")
++    headers.setdefault("Referrer-Policy", "no-referrer")
++    headers.setdefault("Cross-Origin-Opener-Policy", "same-origin")
++    headers.setdefault(
++        "Permissions-Policy", "geolocation=(), microphone=(), camera=()"
++    )
++    if settings.is_production:
++        headers.setdefault(
++            "Strict-Transport-Security", "max-age=31536000; includeSubDomains"
++        )
++    return response
++
+ 
+ @app.get("/")
+ def root():
+-    return {"message": "Welcome to the Horizon Maritime API!"}
+\ No newline at end of file
++    return {"message": "Welcome to the Nhaav Maritime API!"}
++
++
++@app.get("/health", tags=["Health"])
++def health():
++    """Liveness probe. Deliberately does no I/O so it reflects process health,
++    not database health; deployers gate on this for readiness/keep-alive."""
++    return {"status": "ok"}
++
++
++@app.get("/health/ready", tags=["Health"])
++def readiness():
++    """Readiness probe: confirms the DATABASE_URL actually answers.
++
++    `/health` stays a pure liveness check. This separate probe exists so a
++    deployer can gate traffic on the database being reachable (a container that
++    booted with a bad DATABASE_URL would otherwise report healthy). It performs
++    one trivial SELECT and opens no tables, so it is safe on an upgraded or an
++    empty schema.
++    """
++    from fastapi import HTTPException
++    from sqlalchemy import text
++
++    from app.database import SessionLocal
++
++    db = SessionLocal()
++    try:
++        db.execute(text("SELECT 1"))
++    except Exception:
++        raise HTTPException(status_code=503, detail="Database unavailable")
++    finally:
++        db.close()
++    return {"status": "ready"}
+\ No newline at end of file
+diff --git a/nhaav-backend/app/routers/documents.py b/nhaav-backend/app/routers/documents.py
+index 9edf63a..1666215 100644
+--- a/nhaav-backend/app/routers/documents.py
++++ b/nhaav-backend/app/routers/documents.py
+@@ -1,19 +1,42 @@
+-from fastapi import APIRouter, Depends, UploadFile, File, Form, BackgroundTasks
++import logging
++import os
++import uuid
++
++from fastapi import (
++    APIRouter,
++    BackgroundTasks,
++    Depends,
++    File,
++    Form,
++    HTTPException,
++    Query,
++    UploadFile,
++    status,
++)
++from fastapi.responses import FileResponse
+ from sqlalchemy.orm import Session
+ 
+ from app.database import get_db
+ from app.middleware.auth_guard import get_current_user
+-from app.models.user import User
++from app.models.user import User, UserRole
+ from app.models.document import Document, DocumentType
+ from app.schemas.document import DocumentResponse
+ from app.services.document_service import DocumentService
+-from app.models.document import Document, DocumentType
+ 
+ router = APIRouter(
+     prefix="/documents",
+     tags=["Documents"]
+ )
+ 
++logger = logging.getLogger(__name__)
++
++
++def _require_admin(current_user: User = Depends(get_current_user)) -> User:
++    """Admin-only guard for verification actions (same policy as moderation)."""
++    if current_user.role != UserRole.admin:
++        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required")
++    return current_user
++
+ 
+ @router.post(
+     "/upload"
+@@ -33,9 +56,15 @@ async def upload_document(
+         background_tasks=background_tasks
+     )
+     
++    # `status` is the machine-readable result clients gate on ("success"), while
++    # `message` carries the human sentence. Returning the sentence in `status`
++    # meant every caller that checked for "success" treated a real upload as a
++    # failure.
+     return {
+-        "status": "Document uploaded successfully",
+-        "document": document
++        "status": "success",
++        "message": "Document uploaded successfully",
++        "document": document,
++        "document_type": getattr(document, "document_type", None),
+     }
+ 
+ 
+@@ -51,24 +80,99 @@ def get_my_documents(
+         Document.user_id == current_user.id
+     ).all()
+ 
+-@router.get("/debug")
+-def debug_documents(
+-    db: Session = Depends(get_db)
++@router.get(
++    "/{document_id}/file",
++    summary="Download one of the current user's own stored documents"
++)
++def get_my_document_file(
++    document_id: uuid.UUID,
++    db: Session = Depends(get_db),
++    current_user: User = Depends(get_current_user),
+ ):
+-    return db.query(Document).all()
++    """
++    Serve a stored document as a blob to its OWNER (admins may also read).
++
++    `services/documents.ts -> getDocumentFile` calls this to render inline
++    previews with the caller's JWT. Storage is a local upload directory (see
++    DocumentService.upload_document) and documents are never exposed on a
++    public URL, so the lookup is scoped to the caller: someone else's document
++    is a 403, an unknown id a 404.
++    """
++    doc = db.query(Document).filter(Document.id == document_id).first()
++    if doc is None:
++        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
++    if doc.user_id != current_user.id and current_user.role != UserRole.admin:
++        raise HTTPException(
++            status_code=status.HTTP_403_FORBIDDEN,
++            detail="Not allowed to access this document",
++        )
++    if not doc.file_url or not os.path.isfile(doc.file_url):
++        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Stored file not found")
++
++    return FileResponse(
++        doc.file_url,
++        filename=doc.name or os.path.basename(doc.file_url),
++    )
++
++
++@router.delete(
++    "/{document_id}",
++    summary="Delete one of the current user's own documents"
++)
++def delete_my_document(
++    document_id: uuid.UUID,
++    db: Session = Depends(get_db),
++    current_user: User = Depends(get_current_user),
++):
++    """
++    Delete a document the caller owns, together with its stored bytes.
++
++    Owner-only: admins have verify/reject, and must not be able to destroy a
++    user's evidence. The row is committed away BEFORE the file is unlinked, so
++    a storage error can never leave a row pointing at a file that is gone.
++    """
++    doc = db.query(Document).filter(Document.id == document_id).first()
++    if doc is None:
++        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
++    if doc.user_id != current_user.id:
++        raise HTTPException(
++            status_code=status.HTTP_403_FORBIDDEN,
++            detail="Not allowed to delete this document",
++        )
++
++    stored_path = doc.file_url
++    db.delete(doc)
++    db.commit()
++
++    if stored_path and os.path.isfile(stored_path):
++        try:
++            os.remove(stored_path)
++        except OSError:
++            # The document is already gone from the user's view; a leftover
++            # blob on disk is an operator concern, not a client error.
++            logger.warning("Could not remove stored document file %s", stored_path)
++
++    return {"status": "Document deleted"}
++
+ 
+ @router.put(
+     "/{document_id}/verify",
+     response_model=DocumentResponse
+ )
+ def verify_document(
+-    document_id: str,
+-    db: Session = Depends(get_db)
++    document_id: uuid.UUID,
++    db: Session = Depends(get_db),
++    admin: User = Depends(_require_admin)
+ ):
+-    return DocumentService.verify_document(
+-        db=db,
+-        document_id=document_id
+-    )
++    try:
++        return DocumentService.verify_document(
++            db=db,
++            document_id=document_id,
++            verifier_id=admin.id,
++            admin=admin,
++        )
++    except ValueError:
++        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
+ 
+ 
+ @router.put(
+@@ -76,10 +180,24 @@ def verify_document(
+     response_model=DocumentResponse
+ )
+ def reject_document(
+-    document_id: str,
+-    db: Session = Depends(get_db)
++    document_id: uuid.UUID,
++    reason: str | None = Query(
++        None,
++        description=(
++            "Why the document is rejected (required; validated after the admin "
++            "check so an anonymous caller still gets 401, not 422)"
++        ),
++    ),
++    db: Session = Depends(get_db),
++    admin: User = Depends(_require_admin)
+ ):
+-    return DocumentService.reject_document(
+-        db=db,
+-        document_id=document_id
+-    )
+\ No newline at end of file
++    try:
++        return DocumentService.reject_document(
++            db=db,
++            document_id=document_id,
++            verifier_id=admin.id,
++            reason=reason,
++            admin=admin,
++        )
++    except ValueError:
++        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
+\ No newline at end of file
+diff --git a/nhaav-backend/requirements.txt b/nhaav-backend/requirements.txt
+index 64c6d07..4a20300 100644
+--- a/nhaav-backend/requirements.txt
++++ b/nhaav-backend/requirements.txt
+@@ -9,7 +9,8 @@ email-validator>=2.0.0
+ 
+ # Authentication (JWT and password hashing)
+ python-jose[cryptography]>=3.3.0
+-passlib[bcrypt]>=1.7.4
++# bcrypt directly: passlib 1.7.4 is broken against bcrypt >= 4.1
++bcrypt>=4.0.1
+ python-multipart>=0.0.6
+ 
+ # Database Drivers
+@@ -21,5 +22,12 @@ psycopg2-binary>=2.9.9
+ python-docx>=1.1.0
+ pytest>=7.4.0
+ 
+-opencv-python-headless
+-pytesseract
+\ No newline at end of file
++# OCR / document pipeline. These are imported when the app starts (ocr_service),
++# so a container without them fails to boot rather than degrading one feature.
++# PyMuPDF provides `fitz` (PDF text extraction); pdf2image converts scanned
++# pages via poppler; Pillow is pytesseract's image backend.
++opencv-python-headless>=4.8.0
++pytesseract>=0.3.10
++PyMuPDF>=1.23.0
++pdf2image>=1.16.3
++Pillow>=10.0.0
+\ No newline at end of file
+diff --git a/nhaav-backend/Dockerfile b/nhaav-backend/Dockerfile
+new file mode 100644
+index 0000000..27d8f5f
+--- /dev/null
++++ b/nhaav-backend/Dockerfile
+@@ -0,0 +1,58 @@
++# Nhaav Maritime backend — production container.
++#
++# Installs the SYSTEM OCR dependencies (tesseract-ocr, poppler-utils) that the
++# document pipeline requires — these cannot go into requirements.txt. The OCR
++# runtime preflight in app/main.py refuses to start production if they (or the
++# Python OCR packages) are missing.
++#
++# Required runtime environment (dashboard → Variables):
++#   ENVIRONMENT=production, DATABASE_URL, JWT_SECRET, CORS_ORIGINS,
++#   FRONTEND_URL, EMAIL_BACKEND=smtp + EMAIL_HOST/EMAIL_FROM/EMAIL_HOST_USER/
++#   EMAIL_HOST_PASSWORD, PAYMENT_BANK_ACCOUNT_HOLDER/PAYMENT_BANK_NAME/
++#   PAYMENT_BANK_ACCOUNT_NUMBER/PAYMENT_BANK_IFSC
++# No secrets are baked into the image.
++#
++# IMPORTANT — uploads are on the LOCAL FILESYSTEM (uploads/, profile_brochures/,
++# uploads/payment_receipts/). There is no S3/object-storage backend in this
++# codebase. Attach a persistent volume at /app/uploads and
++# /app/profile_brochures, or uploaded KYC documents, brochures and payment
++# receipts are lost on every redeploy.
++
++FROM python:3.13-slim
++
++ENV PYTHONDONTWRITEBYTECODE=1 \
++    PYTHONUNBUFFERED=1 \
++    PIP_NO_CACHE_DIR=1
++
++# System dependencies:
++#   tesseract-ocr      -> OCR engine binary used by pytesseract
++#   poppler-utils      -> pdftoppm/pdfinfo used by pdf2image (scanned PDFs)
++#   libglib2.0-0 libgl1 -> runtime libs opencv needs on slim images
++RUN apt-get update && apt-get install -y --no-install-recommends \
++        tesseract-ocr \
++        poppler-utils \
++        libglib2.0-0 \
++        libgl1 \
++    && rm -rf /var/lib/apt/lists/*
++
++WORKDIR /app
++
++COPY requirements.txt .
++RUN pip install --no-cache-dir -r requirements.txt
++
++COPY alembic.ini ./
++COPY alembic ./alembic
++COPY app ./app
++
++# Non-root runtime user
++RUN useradd --create-home appuser && chown -R appuser:appuser /app
++USER appuser
++
++EXPOSE 8000
++
++# Migrations are NOT run automatically. Set RUN_MIGRATIONS_ON_START=true only
++# when you deliberately want this container to apply them on boot; otherwise
++# apply `alembic upgrade head` as a reviewed release step before the new image
++# receives traffic. Schema is never created/mutated by the application itself;
++# DATABASE_URL must point at a live PostgreSQL.
++CMD ["sh", "-c", "if [ \"$RUN_MIGRATIONS_ON_START\" = \"true\" ]; then alembic upgrade head; fi && uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+diff --git a/nhaav-backend/tests/test_health_readiness.py b/nhaav-backend/tests/test_health_readiness.py
+new file mode 100644
+index 0000000..faef1a3
+--- /dev/null
++++ b/nhaav-backend/tests/test_health_readiness.py
+@@ -0,0 +1,32 @@
++"""Deployment probes.
++
++`/health` is liveness only; `/health/ready` additionally proves the configured
++DATABASE_URL is reachable, which is what a deployer should gate traffic on.
++"""
++import os
++import sys
++
++sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
++
++os.environ.setdefault("DATABASE_URL", "sqlite:///./test_health_readiness.db")
++os.environ.setdefault("JWT_SECRET", "test-secret")
++os.environ.setdefault("ENVIRONMENT", "development")
++os.environ.setdefault("EMAIL_BACKEND", "console")
++
++from fastapi.testclient import TestClient
++
++from app.main import app
++
++client = TestClient(app)
++
++
++def test_liveness_is_io_free():
++    response = client.get("/health")
++    assert response.status_code == 200
++    assert response.json() == {"status": "ok"}
++
++
++def test_readiness_confirms_the_database_answers():
++    response = client.get("/health/ready")
++    assert response.status_code == 200, response.text
++    assert response.json() == {"status": "ready"}
+diff --git a/nhaav-backend/tests/test_security_critical.py b/nhaav-backend/tests/test_security_critical.py
+new file mode 100644
+index 0000000..ddd6da8
+--- /dev/null
++++ b/nhaav-backend/tests/test_security_critical.py
+@@ -0,0 +1,428 @@
++"""
++Regression tests for CRITICAL security fixes C1-C4.
++
++C2 - Verification endpoints are admin-only:
++  - unauthenticated request -> rejected (401)
++  - client -> 403
++  - provider (own document/profile and another provider's) -> 403
++  - admin -> allowed
++
++C3 - /documents/debug is removed and can never leak documents.
++
++C4 - Uploaded files are no longer served from a public /uploads mount:
++  - only the document owner (or an admin) can retrieve the stored file
++  - cross-user access is rejected
++  - deleting a document removes its stored file
++  - normal upload + OCR extraction still works
++"""
++import io
++import os
++import sys
++import uuid
++
++import pytest
++import docx
++from fastapi.testclient import TestClient
++from sqlalchemy import create_engine
++from sqlalchemy.orm import sessionmaker
++
++from app.main import app
++from app.database import Base, get_db
++from app.models.user import User, UserRole
++from app.models.profile import Profile, VerificationStatus
++from app.models.document import Document, DocumentType, DocumentStatus
++from app.utils.password import hash_password
++
++SQLALCHEMY_DATABASE_URL = "sqlite:///./test_security_critical.db"
++engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
++TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
++
++
++def override_get_db():
++    db = TestingSessionLocal()
++    try:
++        yield db
++    finally:
++        db.close()
++
++
++@pytest.fixture(scope="module", autouse=True)
++def setup_db():
++    Base.metadata.drop_all(bind=engine)
++    Base.metadata.create_all(bind=engine)
++    app.dependency_overrides[get_db] = override_get_db
++    yield
++    app.dependency_overrides.pop(get_db, None)
++
++
++client = TestClient(app)
++
++CLIENT_EMAIL = "sec_client@example.com"
++PROVIDER_A_EMAIL = "sec_provider_a@example.com"
++PROVIDER_B_EMAIL = "sec_provider_b@example.com"
++ADMIN_EMAIL = "sec_admin@nhaavmaritime.com"
++PASSWORD = "Password123!"
++ADMIN_PASSWORD = "Admin@123"
++
++
++def _db_session():
++    return TestingSessionLocal()
++
++
++def _add_user(email: str, role: UserRole) -> User:
++    db = _db_session()
++    try:
++        user = User(email=email, password_hash=hash_password(PASSWORD), role=role, full_name=f"User {email}")
++        db.add(user)
++        db.commit()
++        db.refresh(user)
++        return user
++    finally:
++        db.close()
++
++
++def _add_profile(user_id) -> Profile:
++    db = _db_session()
++    try:
++        profile = Profile(user_id=user_id, company_name=f"Co {user_id}", verification_status=VerificationStatus.pending)
++        db.add(profile)
++        db.commit()
++        db.refresh(profile)
++        return profile
++    finally:
++        db.close()
++
++
++def _add_document(user_id) -> Document:
++    db = _db_session()
++    try:
++        doc = Document(
++            user_id=user_id,
++            document_type=DocumentType.vendor_registration,
++            name="credential.pdf",
++            file_url="uploads/unused-test-file.pdf",
++            verification_status=DocumentStatus.pending,
++        )
++        db.add(doc)
++        db.commit()
++        db.refresh(doc)
++        return doc
++    finally:
++        db.close()
++
++
++@pytest.fixture(scope="module")
++def ctx():
++    """Seed users/profiles/admin once and return ids + tokens."""
++    client_user = _add_user(CLIENT_EMAIL, UserRole.client)
++    provider_a = _add_user(PROVIDER_A_EMAIL, UserRole.provider)
++    provider_b = _add_user(PROVIDER_B_EMAIL, UserRole.provider)
++
++    profile_client = _add_profile(client_user.id)
++    profile_a = _add_profile(provider_a.id)
++    profile_b = _add_profile(provider_b.id)
++
++    db = _db_session()
++    try:
++        admin = User(email=ADMIN_EMAIL, password_hash=hash_password(ADMIN_PASSWORD),
++                     role=UserRole.admin, full_name="Sec Admin", is_verified=True)
++        db.add(admin)
++        db.commit()
++        db.refresh(admin)
++        admin_id = admin.id
++    finally:
++        db.close()
++
++    def _user_token(email: str, password: str = PASSWORD) -> str:
++        res = client.post("/auth/login", json={"email": email, "password": password})
++        assert res.status_code == 200, f"Login failed for {email}: {res.text}"
++        return res.json()["access_token"]
++
++    def _admin_token() -> str:
++        res = client.post("/admin/auth/login", json={"email": ADMIN_EMAIL, "password": ADMIN_PASSWORD})
++        assert res.status_code == 200, f"Admin login failed: {res.text}"
++        return res.json()["access_token"]
++
++    return {
++        "client_id": str(client_user.id),
++        "provider_a_id": str(provider_a.id),
++        "provider_b_id": str(provider_b.id),
++        "client_profile_id": str(profile_client.id),
++        "provider_a_profile_id": str(profile_a.id),
++        "provider_b_profile_id": str(profile_b.id),
++        "admin_id": str(admin_id),
++        "client_token": _user_token(CLIENT_EMAIL),
++        "provider_a_token": _user_token(PROVIDER_A_EMAIL),
++        "provider_b_token": _user_token(PROVIDER_B_EMAIL),
++        "admin_token": _admin_token(),
++    }
++
++
++# ---------------------------------------------------------------------------
++# C2 — PUT /documents/{id}/verify | /reject are admin-only
++# ---------------------------------------------------------------------------
++
++
++def test_c2_document_verify_unauthenticated_rejected(ctx):
++    doc = _add_document(uuid.UUID(ctx["provider_a_id"]))
++    # The shared client still holds the cookie from the fixture's login; a truly
++    # anonymous caller has neither header nor cookie.
++    client.cookies.clear()
++    res = client.put(f"/documents/{doc.id}/verify")
++    assert res.status_code == 401, f"Expected 401 for anonymous verify, got {res.status_code}: {res.text}"
++
++
++def test_c2_document_verify_client_forbidden(ctx):
++    doc = _add_document(uuid.UUID(ctx["provider_a_id"]))
++    headers = {"Authorization": f"Bearer {ctx['client_token']}"}
++    res = client.put(f"/documents/{doc.id}/verify", headers=headers)
++    assert res.status_code == 403, f"Expected 403 for client, got {res.status_code}: {res.text}"
++
++
++def test_c2_document_verify_provider_self_forbidden(ctx):
++    """A provider must not be able to verify their own document."""
++    doc = _add_document(uuid.UUID(ctx["provider_a_id"]))
++    headers = {"Authorization": f"Bearer {ctx['provider_a_token']}"}
++    res = client.put(f"/documents/{doc.id}/verify", headers=headers)
++    assert res.status_code == 403, f"Expected 403 for self-verification, got {res.status_code}: {res.text}"
++
++
++def test_c2_document_verify_provider_other_forbidden(ctx):
++    """A provider must not be able to verify another provider's document."""
++    doc = _add_document(uuid.UUID(ctx["provider_a_id"]))
++    headers = {"Authorization": f"Bearer {ctx['provider_b_token']}"}
++    res = client.put(f"/documents/{doc.id}/verify", headers=headers)
++    assert res.status_code == 403, f"Expected 403 for cross-provider verify, got {res.status_code}: {res.text}"
++
++
++def test_c2_document_verify_admin_allowed(ctx):
++    doc = _add_document(uuid.UUID(ctx["provider_a_id"]))
++    headers = {"Authorization": f"Bearer {ctx['admin_token']}"}
++    res = client.put(f"/documents/{doc.id}/verify", headers=headers)
++    assert res.status_code == 200, f"Expected 200 for admin verify, got {res.status_code}: {res.text}"
++    assert res.json()["verification_status"] == "verified"
++
++
++def test_c2_document_reject_admin_allowed_and_users_forbidden(ctx):
++    doc = _add_document(uuid.UUID(ctx["provider_b_id"]))
++
++    client.cookies.clear()  # no cookie, no header = anonymous
++    res = client.put(f"/documents/{doc.id}/reject")
++    assert res.status_code == 401
++
++    headers = {"Authorization": f"Bearer {ctx['client_token']}"}
++    res = client.put(f"/documents/{doc.id}/reject", headers=headers)
++    assert res.status_code == 403, f"Expected 403 for client reject, got {res.status_code}: {res.text}"
++
++    headers = {"Authorization": f"Bearer {ctx['admin_token']}"}
++    # A rejection carries a reason (the account is shown it); without one the
++    # admin request is refused by the service, not by the auth layer.
++    missing_reason = client.put(f"/documents/{doc.id}/reject", headers=headers)
++    assert missing_reason.status_code == 400, missing_reason.text
++
++    res = client.put(
++        f"/documents/{doc.id}/reject?reason=Illegible%20scan", headers=headers
++    )
++    assert res.status_code == 200, f"Expected 200 for admin reject, got {res.status_code}: {res.text}"
++    assert res.json()["verification_status"] == "rejected"
++
++
++# ---------------------------------------------------------------------------
++# C2 — PUT /profiles/{profile_id}/verify is admin-only
++# ---------------------------------------------------------------------------
++
++
++def test_c2_profile_verify_unauthenticated_rejected(ctx):
++    client.cookies.clear()  # no cookie, no header = anonymous
++    res = client.put(f"/profiles/{ctx['provider_a_profile_id']}/verify")
++    assert res.status_code == 401, f"Expected 401 for anonymous profile verify, got {res.status_code}: {res.text}"
++
++
++def test_c2_profile_verify_client_forbidden(ctx):
++    headers = {"Authorization": f"Bearer {ctx['client_token']}"}
++    res = client.put(f"/profiles/{ctx['provider_a_profile_id']}/verify", headers=headers)
++    assert res.status_code == 403, f"Expected 403 for client, got {res.status_code}: {res.text}"
++
++
++def test_c2_profile_verify_provider_self_forbidden(ctx):
++    """A provider must not be able to verify their own profile."""
++    headers = {"Authorization": f"Bearer {ctx['provider_a_token']}"}
++    res = client.put(f"/profiles/{ctx['provider_a_profile_id']}/verify", headers=headers)
++    assert res.status_code == 403, f"Expected 403 for self profile verify, got {res.status_code}: {res.text}"
++
++
++def test_c2_profile_verify_provider_other_forbidden(ctx):
++    """A provider must not be able to verify another provider's profile."""
++    headers = {"Authorization": f"Bearer {ctx['provider_b_token']}"}
++    res = client.put(f"/profiles/{ctx['provider_a_profile_id']}/verify", headers=headers)
++    assert res.status_code == 403, f"Expected 403 for cross-provider profile verify, got {res.status_code}: {res.text}"
++
++
++def test_c2_profile_verify_admin_allowed(ctx):
++    headers = {"Authorization": f"Bearer {ctx['admin_token']}"}
++    res = client.put(f"/profiles/{ctx['provider_b_profile_id']}/verify", headers=headers)
++    assert res.status_code == 200, f"Expected 200 for admin profile verify, got {res.status_code}: {res.text}"
++    assert res.json()["verification_status"] == "verified"
++
++
++# ---------------------------------------------------------------------------
++# C3 — /documents/debug is removed
++# ---------------------------------------------------------------------------
++
++
++def test_c3_debug_endpoint_removed(ctx):
++    # Anonymous callers must never reach a document dump.
++    # 404 = route gone; 405 = no GET handler for the path — either way the
++    # debug dump is unreachable and must never return document data.
++    res = client.get("/documents/debug")
++    assert res.status_code in (404, 405), f"Debug endpoint should be gone, got {res.status_code}"
++    assert "ocr_extracted_data" not in res.text
++
++    # Even an admin must not have a route that dumps every user's documents.
++    headers = {"Authorization": f"Bearer {ctx['admin_token']}"}
++    res = client.get("/documents/debug", headers=headers)
++    assert res.status_code in (404, 405), f"Debug endpoint should be gone, got {res.status_code}"
++
++
++# ---------------------------------------------------------------------------
++# C4 — files are private; owner/admin-only retrieval; deletion removes file
++# ---------------------------------------------------------------------------
++
++
++def _make_vendor_docx_bytes() -> bytes:
++    buf = io.BytesIO()
++    document = docx.Document()
++    document.add_paragraph("APPLICATION FOR VENDOR REGISTRATION")
++    document.add_paragraph("Name of the Vendor: Acme Marine Pvt Ltd")
++    document.add_paragraph("Nationality: Indian")
++    document.add_paragraph("c) Email: acme@example.com")
++    document.add_paragraph("PAN: AAAAA1234F")
++    document.add_paragraph("GSTIN: 27AAAAA0000A1Z5")
++    document.save(buf)
++    return buf.getvalue()
++
++
++def _upload_document(token: str, data: bytes = None):
++    """Upload a vendor docx. Returns the response; pass `data` to compare the
++    exact bytes later (docx zip metadata embeds timestamps, so a second
++    _make_vendor_docx_bytes() call may not be byte-identical)."""
++    headers = {"Authorization": f"Bearer {token}"}
++    return client.post(
++        "/documents/upload",
++        headers=headers,
++        data={"document_type": "vendor_registration"},
++        files={
++            "file": (
++                "vendor-registration.docx",
++                data if data is not None else _make_vendor_docx_bytes(),
++                "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
++            )
++        },
++    )
++
++
++def test_c4_upload_and_ocr_still_works(ctx):
++    """Uploading a document still succeeds and OCR extraction runs."""
++    res = _upload_document(ctx["provider_a_token"])
++    assert res.status_code == 200, f"Upload failed: {res.status_code} {res.text}"
++    body = res.json()
++    assert body["status"] == "success"
++    document = body["document"]
++    assert document["document_type"] == "vendor_registration"
++    assert document["verification_status"] == "extracted", "OCR extraction should mark the document as extracted"
++    assert document["verification_score"] is not None
++    fields = body.get("fields") or {}
++    assert fields.get("vendor_name") == "Acme Marine Pvt Ltd", f"Expected extracted vendor name, got {fields}"
++    assert fields.get("pan") == "AAAAA1234F", f"Expected extracted PAN, got {fields}"
++
++
++def test_c4_uploads_static_route_removed(ctx):
++    """The public /uploads static mount is gone."""
++    res = client.get("/uploads/anything-random.pdf")
++    assert res.status_code == 404, f"Public /uploads route should be removed, got {res.status_code}"
++
++
++def test_c4_owner_can_access_own_file(ctx):
++    expected = _make_vendor_docx_bytes()  # generate ONCE — zip timestamps make a second call non-identical
++    res = _upload_document(ctx["provider_a_token"], data=expected)
++    assert res.status_code == 200, f"Upload failed: {res.status_code} {res.text}"
++    doc_id = res.json()["document"]["id"]
++
++    headers = {"Authorization": f"Bearer {ctx['provider_a_token']}"}
++    try:
++        file_res = client.get(f"/documents/{doc_id}/file", headers=headers)
++        assert file_res.status_code == 200, (
++            f"Owner should access their file, got {file_res.status_code}: {file_res.text[:200]}"
++        )
++        import hashlib
++        assert file_res.content == expected, (
++            "Served file must match the uploaded content: "
++            f"got {len(file_res.content)} bytes (sha256={hashlib.sha256(file_res.content).hexdigest()[:16]}), "
++            f"expected {len(expected)} bytes (sha256={hashlib.sha256(expected).hexdigest()[:16]})"
++        )
++    finally:
++        client.delete(f"/documents/{doc_id}", headers=headers)
++
++
++def test_c4_cross_user_file_access_rejected(ctx):
++    expected = _make_vendor_docx_bytes()  # generate ONCE — see test_c4_owner_can_access_own_file
++    res = _upload_document(ctx["provider_a_token"], data=expected)
++    assert res.status_code == 200
++    doc_id = res.json()["document"]["id"]
++
++    # Unauthenticated (clear the fixture's login cookie first: with a session
++    # cookie the caller IS the owner, and a 200 would be correct).
++    client.cookies.clear()
++    assert client.get(f"/documents/{doc_id}/file").status_code == 401
++
++    # Another provider
++    other = {"Authorization": f"Bearer {ctx['provider_b_token']}"}
++    assert client.get(f"/documents/{doc_id}/file", headers=other).status_code == 403
++
++    # A client
++    client_headers = {"Authorization": f"Bearer {ctx['client_token']}"}
++    assert client.get(f"/documents/{doc_id}/file", headers=client_headers).status_code == 403
++
++    # Admin can access through the dedicated admin endpoint
++    admin_headers = {"Authorization": f"Bearer {ctx['admin_token']}"}
++    admin_res = client.get(f"/admin/verification/documents/{doc_id}/file", headers=admin_headers)
++    assert admin_res.status_code == 200, f"Admin should access the file, got {admin_res.status_code}"
++    assert admin_res.content == expected
++
++    # cleanup
++    owner_headers = {"Authorization": f"Bearer {ctx['provider_a_token']}"}
++    client.delete(f"/documents/{doc_id}", headers=owner_headers)
++
++
++def test_c4_delete_removes_row_and_stored_file(ctx):
++    res = _upload_document(ctx["provider_a_token"])
++    assert res.status_code == 200
++    body = res.json()["document"]
++    doc_id = body["id"]
++    storage_key = body["file_url"]
++    # H3: file_url is a server-generated storage key (never the original
++    # filename, never a raw filesystem path): documents/<user_uuid>/<uuid>.<ext>
++    normalized = storage_key.replace("\\", "/") if storage_key else ""
++    assert normalized.startswith("documents/"), f"Expected storage key under documents/, got {storage_key!r}"
++    assert "vendor-registration" not in normalized, "Original filename must never determine the storage path"
++
++    from app.services.storage_service import get_storage_backend
++    backend = get_storage_backend()
++    assert backend.exists(storage_key), "Uploaded file should exist in the storage backend"
++
++    owner_headers = {"Authorization": f"Bearer {ctx['provider_a_token']}"}
++    del_res = client.delete(f"/documents/{doc_id}", headers=owner_headers)
++    assert del_res.status_code == 200
++
++    # Row is gone
++    db = _db_session()
++    try:
++        row = db.query(Document).filter(Document.id == uuid.UUID(doc_id)).first()
++        assert row is None, "Document row should be deleted"
++    finally:
++        db.close()
++
++    # Stored object is gone and the endpoint 404s
++    assert not backend.exists(storage_key), "Stored file should be removed from the storage backend"
++    file_res = client.get(f"/documents/{doc_id}/file", headers=owner_headers)
++    assert file_res.status_code == 404

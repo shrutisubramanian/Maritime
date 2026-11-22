@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Register | NHAAV Maritime Infrastructure</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;700;800&amp;family=Inter:wght@300;400;500;600&amp;family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&amp;family=Manrope:wght@100..900&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "secondary-container": "#244872",
+                        "inverse-surface": "#dce3f0",
+                        "on-surface-variant": "#c4c6ce",
+                        "surface-container-high": "#242a34",
+                        "surface-container-highest": "#2e353f",
+                        "on-background": "#dce3f0",
+                        "on-primary-fixed-variant": "#00497a",
+                        "primary-fixed-dim": "#9ccaff",
+                        "surface": "#0d141d",
+                        "on-primary-fixed": "#001d35",
+                        "on-error-container": "#ffdad6",
+                        "on-tertiary-fixed-variant": "#004e60",
+                        "on-secondary": "#04315a",
+                        "inverse-on-surface": "#2a313b",
+                        "on-primary": "#003256",
+                        "tertiary-fixed-dim": "#4cd6ff",
+                        "secondary-fixed": "#d3e4ff",
+                        "primary-container": "#00203a",
+                        "surface-tint": "#9ccaff",
+                        "primary": "#9ccaff",
+                        "background": "#0d141d",
+                        "inverse-primary": "#0062a0",
+                        "surface-bright": "#333a44",
+                        "on-secondary-fixed-variant": "#244872",
+                        "on-secondary-container": "#95b7e7",
+                        "outline": "#8e9098",
+                        "surface-variant": "#2e353f",
+                        "on-surface": "#dce3f0",
+                        "on-tertiary": "#003543",
+                        "error-container": "#93000a",
+                        "on-error": "#690005",
+                        "on-tertiary-container": "#0092b3",
+                        "error": "#ffb4ab",
+                        "on-primary-container": "#008be1",
+                        "surface-container-lowest": "#080f18",
+                        "primary-fixed": "#d0e4ff",
+                        "secondary-fixed-dim": "#a6c9fa",
+                        "on-tertiary-fixed": "#001f28",
+                        "tertiary-fixed": "#b7eaff",
+                        "on-secondary-fixed": "#001c38",
+                        "tertiary-container": "#00222c",
+                        "surface-dim": "#0d141d",
+                        "secondary": "#a6c9fa",
+                        "surface-container-low": "#151c26",
+                        "surface-container": "#19202a",
+                        "outline-variant": "#44474d",
+                        "tertiary": "#4cd6ff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "fontFamily": {
+                        "headline": ["Manrope"],
+                        "display": ["Manrope"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body {
+            background-color: #0d141d;
+            background-image: 
+                radial-gradient(circle at 0% 0%, rgba(0, 139, 225, 0.05) 0%, transparent 50%),
+                radial-gradient(circle at 100% 100%, rgba(76, 214, 255, 0.05) 0%, transparent 50%);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        .glass-card {
+            background: rgba(46, 53, 63, 0.4);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+        .oceanic-glow {
+            box-shadow: 0 20px 40px rgba(0, 209, 255, 0.08);
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+        }
+        .input-gradient-border {
+            border-bottom: 2px solid rgba(68, 71, 77, 0.3);
+            transition: all 0.3s ease;
+        }
+        .input-gradient-border:focus {
+            border-image: linear-gradient(to right, #4cd6ff, #9ccaff) 1;
+            outline: none;
+        }
+        .ocean-texture {
+            opacity: 0.1;
+            mix-blend-mode: overlay;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body class="font-body text-on-surface flex flex-col items-center justify-between">
+<!-- TopNavBar -->
+<header class="flex justify-between items-center w-full px-8 py-6 fixed top-0 left-0 z-50">
+<div class="font-headline text-2xl font-bold tracking-tight text-on-surface">NHAAV</div>
+<div class="hidden md:flex gap-8">
+<a class="text-on-surface-variant font-medium hover:text-primary transition-colors duration-300 text-sm tracking-wide" href="#">Support</a>
+<a class="text-on-surface-variant font-medium hover:text-primary transition-colors duration-300 text-sm tracking-wide" href="#">Security</a>
+</div>
+</header>
+<!-- Main Registration Section -->
+<main class="flex-grow flex items-center justify-center w-full px-4 pt-24 pb-12 relative overflow-hidden">
+<!-- Subtle Animated Background Elements -->
+<div class="absolute inset-0 z-0">
+<div class="absolute top-[20%] left-[10%] w-[400px] h-[400px] bg-primary/5 rounded-full blur-[120px] animate-pulse"></div>
+<div class="absolute bottom-[20%] right-[10%] w-[500px] h-[500px] bg-tertiary/5 rounded-full blur-[120px] animate-pulse" style="animation-delay: 2s"></div>
+</div>
+<!-- Glassmorphic Card -->
+<div class="glass-card oceanic-glow w-full max-w-xl p-8 md:p-12 rounded-xl relative z-10">
+<div class="mb-10 text-center">
+<span class="font-label text-[10px] text-on-surface-variant uppercase tracking-[0.2em] mb-2 block">Registration Phase II</span>
+<h1 class="font-display text-4xl font-extrabold tracking-tight text-on-surface mb-3">Complete Your Profile</h1>
+<p class="text-on-surface-variant font-light text-sm max-w-sm mx-auto leading-relaxed">Set up your credentials to access the Nhaav maritime network and digital infrastructure.</p>
+</div>
+<form class="space-y-8" onsubmit="event.preventDefault();">
+<!-- Name Field -->
+<div class="relative group">
+<label class="block font-label text-[11px] text-on-surface-variant uppercase tracking-wider mb-2" for="fullName">Full Name</label>
+<div class="flex items-center">
+<span class="material-symbols-outlined text-on-surface-variant/50 mr-3 text-[20px]">person</span>
+<input class="w-full bg-transparent border-none p-0 py-2 text-on-surface placeholder:text-on-surface-variant/30 font-medium focus:ring-0 input-gradient-border" id="fullName" placeholder="Enter your legal name" type="text"/>
+</div>
+</div>
+<!-- Email Field -->
+<div class="relative group">
+<label class="block font-label text-[11px] text-on-surface-variant uppercase tracking-wider mb-2" for="email">Corporate Email</label>
+<div class="flex items-center">
+<span class="material-symbols-outlined text-on-surface-variant/50 mr-3 text-[20px]">alternate_email</span>
+<input class="w-full bg-transparent border-none p-0 py-2 text-on-surface placeholder:text-on-surface-variant/30 font-medium focus:ring-0 input-gradient-border" id="email" placeholder="name@company.com" type="email"/>
+</div>
+</div>
+<!-- Password Fields Row -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+<div class="relative group">
+<label class="block font-label text-[11px] text-on-surface-variant uppercase tracking-wider mb-2" for="password">Create Password</label>
+<div class="flex items-center">
+<span class="material-symbols-outlined text-on-surface-variant/50 mr-3 text-[20px]">lock</span>
+<input class="w-full bg-transparent border-none p-0 py-2 text-on-surface placeholder:text-on-surface-variant/30 font-medium focus:ring-0 input-gradient-border" id="password" placeholder="••••••••" type="password"/>
+</div>
+</div>
+<div class="relative group">
+<label class="block font-label text-[11px] text-on-surface-variant uppercase tracking-wider mb-2" for="confirmPassword">Confirm Password</label>
+<div class="flex items-center">
+<span class="material-symbols-outlined text-on-surface-variant/50 mr-3 text-[20px]">verified_user</span>
+<input class="w-full bg-transparent border-none p-0 py-2 text-on-surface placeholder:text-on-surface-variant/30 font-medium focus:ring-0 input-gradient-border" id="confirmPassword" placeholder="••••••••" type="password"/>
+</div>
+</div>
+</div>
+<!-- Agreement -->
+<div class="flex items-start gap-3 pt-2">
+<div class="mt-1">
+<input class="rounded border-outline-variant bg-surface-container-lowest text-tertiary focus:ring-tertiary/20" id="terms" type="checkbox"/>
+</div>
+<label class="text-xs text-on-surface-variant leading-relaxed" for="terms">
+                        I agree to the <a class="text-tertiary hover:underline" href="#">Terms of Service</a> and <a class="text-tertiary hover:underline" href="#">Data Protection Policy</a> for maritime infrastructure operations.
+                    </label>
+</div>
+<!-- CTA Button -->
+<button class="w-full bg-gradient-to-r from-primary to-tertiary text-on-primary py-4 rounded-xl font-bold tracking-wide active:scale-[0.98] transition-all duration-200 oceanic-glow hover:brightness-110 flex items-center justify-center gap-2" type="submit">
+                    Create Account
+                    <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+</button>
+</form>
+<div class="mt-8 text-center">
+<p class="text-xs text-on-surface-variant">Already registered? <a class="text-primary font-semibold hover:underline" href="#">Sign In</a></p>
+</div>
+</div>
+<!-- Atmospheric Image Overlay (Subtle) -->
+<div class="absolute bottom-0 right-0 w-1/3 h-1/2 opacity-20 hidden lg:block -z-10">
+<img alt="Maritime vessel" class="w-full h-full object-cover grayscale mix-blend-screen" data-alt="A cinematic long-exposure photograph of a massive cargo ship cutting through deep blue midnight waters. The ship is illuminated by cold cyan technical lights, reflecting off the ocean's surface. The overall atmosphere is silent, industrial, and high-tech, using a palette of deep navy, teal, and soft silver light. The style is professional B2B photography with sharp focus on the ship's bridge." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAj5kcukXOtpfvr7mjCj4M0NqwjIA8vdU3KYyeK_DF7Gm_6-uGatIDezR3y-GO5XJLMd7FuzwSmA9wBavMxxR91fl7W-UGTT7rv1jJGio0vqiIGMgyAIgIgphzmFdXJVTBrxzdbl6OJ3VBMQ_h0NYPbmJtMvQBHqkSNuQHoYF0-ag4oh4XeFmoC-1JRNFl4WYJ9sdgfKhVUl9-R13vJA-IqtlfYGkGuyDeFtlJoxnA7CHID1f6WYzK4iMjbqS1qSXDfVGDxXFf1AsIM"/>
+</div>
+</main>
+<!-- Footer -->
+<footer class="flex flex-col md:flex-row justify-between items-center w-full px-8 py-10 relative z-20">
+<div class="text-on-surface-variant text-[10px] font-medium tracking-widest uppercase mb-4 md:mb-0">
+            © 2024 NHAAV MARITIME INFRASTRUCTURE. ALL RIGHTS RESERVED.
+        </div>
+<div class="flex gap-6">
+<a class="text-on-surface-variant hover:text-primary transition-colors text-[10px] uppercase tracking-widest font-medium" href="#">Terms of Service</a>
+<a class="text-on-surface-variant hover:text-primary transition-colors text-[10px] uppercase tracking-widest font-medium" href="#">Privacy Policy</a>
+<a class="text-on-surface-variant hover:text-primary transition-colors text-[10px] uppercase tracking-widest font-medium" href="#">Contact Support</a>
+</div>
+</footer>
+<script>
+        // Micro-interactions for input fields
+        const inputs = document.querySelectorAll('input');
+        inputs.forEach(input => {
+            input.addEventListener('focus', () => {
+                const icon = input.previousElementSibling;
+                if (icon) {
+                    icon.classList.remove('text-on-surface-variant/50');
+                    icon.classList.add('text-tertiary');
+                    icon.style.fontVariationSettings = "'FILL' 1";
+                }
+            });
+            input.addEventListener('blur', () => {
+                const icon = input.previousElementSibling;
+                if (icon) {
+                    icon.classList.add('text-on-surface-variant/50');
+                    icon.classList.remove('text-tertiary');
+                    icon.style.fontVariationSettings = "'FILL' 0";
+                }
+            });
+        });
+    </script>
+</body></html>

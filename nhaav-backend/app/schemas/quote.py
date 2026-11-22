@@ -1,0 +1,100 @@
+import uuid
+from datetime import datetime
+from typing import Optional, List
+from pydantic import BaseModel, Field, ConfigDict, field_validator
+
+from app.models.quote import QuoteStatus
+from app.utils.url_safety import validate_attachment_list
+
+class QuoteBase(BaseModel):
+    """
+    Base schema for a Quote containing common data fields.
+    Centralizes validation for fields shared across creation and responses.
+    """
+    amount: float = Field(..., gt=0, description="The monetary value of the quote (must be strictly greater than 0)")
+    currency: str = Field(..., min_length=3, max_length=3, description="3-letter currency code (e.g., USD, EUR)")
+    quotation_reference: Optional[str] = None
+    pricing_model: Optional[str] = None
+    travel_charges: float = 0.0
+    emergency_charges: float = 0.0
+    taxes_included: bool = False
+    message: Optional[str] = Field(None, description="Additional message, breakdown, or terms attached to the quote")
+    estimated_duration: Optional[str] = None
+    estimated_start_date: Optional[datetime] = None
+    estimated_completion_date: Optional[datetime] = None
+    warranty_period: Optional[str] = None
+    payment_terms: Optional[str] = None
+    attachments: Optional[List[str]] = None
+    validity_date: Optional[datetime] = None
+
+class QuoteCreate(QuoteBase):
+    """
+    Schema for creating a new Quote.
+    Used by Providers when they submit a bid for a Service Request.
+    'status' is intentionally omitted so providers cannot submit a quote that is already 'accepted'.
+    (Note: 'request_id' is typically provided in the URL path, so it's omitted from the body payload).
+
+    Attachment values are validated on input only (app/utils/url_safety.py), so
+    a dangerous scheme is refused with 422 while older rows stay readable.
+    """
+
+    @field_validator("attachments")
+    @classmethod
+    def _attachments_are_safe(cls, v):
+        return validate_attachment_list(v)
+
+class QuoteUpdate(BaseModel):
+    """
+    Schema for updating an existing Quote.
+    All fields are Optional to support partial updates (PATCH requests).
+    - Providers might use this to update their 'amount' or 'message' if the quote is still pending.
+    - Clients might use this to update the 'status' to 'accepted' or 'rejected'.
+    """
+    amount: Optional[float] = Field(None, gt=0)
+    currency: Optional[str] = Field(None, min_length=3, max_length=3)
+    quotation_reference: Optional[str] = None
+    pricing_model: Optional[str] = None
+    travel_charges: Optional[float] = None
+    emergency_charges: Optional[float] = None
+    taxes_included: Optional[bool] = None
+    message: Optional[str] = None
+    estimated_duration: Optional[str] = None
+    estimated_start_date: Optional[datetime] = None
+    estimated_completion_date: Optional[datetime] = None
+    warranty_period: Optional[str] = None
+    payment_terms: Optional[str] = None
+    attachments: Optional[List[str]] = None
+    validity_date: Optional[datetime] = None
+    status: Optional[QuoteStatus] = None
+
+    @field_validator("attachments")
+    @classmethod
+    def _attachments_are_safe(cls, v):
+        return validate_attachment_list(v)
+
+class QuoteResponse(QuoteBase):
+    """
+    Schema for returning a Quote from the API.
+    Used in GET endpoints. Includes system-generated fields like 
+    primary keys, foreign keys (request_id, provider_id), the current status, and timestamps.
+    """
+    id: uuid.UUID
+    request_id: uuid.UUID
+    provider_id: uuid.UUID
+    status: QuoteStatus
+    # Set when the provider confirms the awarded job. Together with
+    # status == accepted this is what unlocks the provider's identity/phone.
+    provider_accepted_at: Optional[datetime] = None
+    created_at: datetime
+    updated_at: datetime
+
+    # Instructs Pydantic to extract data directly from SQLAlchemy ORM objects
+    model_config = ConfigDict(from_attributes=True)
+
+class RequestSnippet(BaseModel):
+    title: str
+    service_type: str
+    model_config = ConfigDict(from_attributes=True)
+
+class QuoteWithRequestResponse(QuoteResponse):
+    request: Optional[RequestSnippet] = None

@@ -1,0 +1,423 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Manrope:wght@200..900&display=swap");
+@import "tailwindcss";
+@plugin "@tailwindcss/forms";
+@plugin "@tailwindcss/container-queries";
+
+/* ═══════════════════════════════════════════════════════════════════
+   Nhaav design tokens — Tailwind v4 (@theme) + CSS variables
+   These values MIRROR src/constants/colors.ts (single source of truth).
+   tools/color_contract.py fails if the mirrors drift out of sync.
+   Brand: Morning Dawn #FFF36D · Moonstone #4C9DB0 · Yale Blue #0D3B66
+   ═══════════════════════════════════════════════════════════════════ */
+
+@theme {
+  /* brand */
+  --color-brand: #0D3B66;
+  --color-brand-hover: #0A2F52;
+  --color-brand-grad-end: #17527E;
+  --color-brand-soft: #4C9DB0;
+  --color-brand-tint: rgba(13, 59, 102, 0.10);
+  --color-brand-tint-strong: rgba(13, 59, 102, 0.22);
+  --color-brand-tint-solid: #E7EBF0;
+  --color-merino: #FFF36D;
+  --color-rock: #4C9DB0;
+  --color-venice: #0D3B66;
+  /* surfaces & text (mirror constants/colors.ts lightTheme) */
+  --color-background: #FFF36D;
+  /* Moonstone is the surface family now; the steps go lighter (not darker) so
+     ink #0B2430 keeps its AA ratio on every step. */
+  --color-surface: #62A9BA;
+  --color-surface-alt: #6CB1C1;
+  --color-surface-deep: #78B9C8;
+  --color-text: #0B2430;
+  --color-text-inverse: #FFFFFF;
+  --color-muted: #0B2430;
+  /* AA on the teal surfaces (5.0:1, tinted teal included) — small labels use
+     this, so it may not be a washed-out tone. */
+  --color-faint: #11323E;
+  --color-border: #E4D9B4;
+  --color-border-strong: #CDBE92;
+  /* semantic */
+  --color-success: #16A34A;
+  --color-success-text: #166534;
+  /* Opaque light washes: a translucent tint over the teal card leaves status
+     text at ~2.8:1. */
+  --color-success-tint: #E7F3EA;
+  --color-warning: #B45309;
+  --color-warning-text: #92400E;
+  --color-warning-tint: #FBF1E0;
+  --color-error: #DC2626;
+  --color-error-text: #B91C1C;
+  --color-error-tint: #FBE9E9;
+  --color-info: #0369A1;
+  --color-info-tint: #E6F1F7;
+  --color-purple: #7C3AED;
+  --color-purple-tint: #F0EAFB;
+}
+
+/* Theme-invariant brand primitives (same in light & dark) */
+:root {
+  --color-merino: #FFF36D;
+  --color-rock: #4C9DB0;
+  --color-venice: #0D3B66;
+}
+
+/* Legacy CSS-variable bridge — LIGHT values are the :root default.
+   All of these are ALSO set at runtime by ThemeContext (inline on :root,
+   which wins over this block), so theme switching works even if the
+   stylesheet defaults drift. Color values mirror constants/colors.ts. */
+:root, .light {
+  --bg-primary: #FFF36D;
+  --bg-secondary: #6CB1C1;
+  --bg-surface: #62A9BA;
+  --bg-surface-hover: #6CB1C1;
+  --bg-glass: rgba(255, 255, 255, 0.88);
+
+  /* Contrast pair for brand fills — mirrors constants/colors.ts onBrand.
+     white on Venice 7.7:1 (light) · ink on Rock 7.1:1 (dark). Static
+     defaults so stylesheets and ThemeContext-free mounts resolve correctly;
+     ThemeContext re-applies these at runtime for both themes. */
+  --color-on-brand: #FFFFFF;
+  --color-on-brand-soft: #0B2430;
+  --color-brand-tint: rgba(13, 59, 102, 0.10);
+  --color-brand-tint-strong: rgba(13, 59, 102, 0.22);
+  --color-brand-tint-solid: #E7EBF0;
+
+  --border-color: #E4D9B4;
+  --border-glow: rgba(13, 59, 102, 0.25);
+
+  --accent-primary: #0D3B66;
+  --accent-primary-hover: #0A2F52;
+  --accent-glow: rgba(13, 59, 102, 0.18);
+
+  --accent-cyan: #0D3B66;
+  --accent-emerald: #16A34A;
+  --accent-amber: #B45309;
+  --accent-rose: #DC2626;
+  --accent-purple: #7C3AED;
+
+  --text-main: #0B2430;
+  --text-muted: #0B2430;
+  --text-dim: #16414E;
+
+  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  --shadow-sm: 0 1px 3px rgba(22, 55, 70, 0.08);
+  --shadow-md: 0 4px 16px rgba(22, 55, 70, 0.10);
+  --shadow-glow: 0 0 20px rgba(13, 59, 102, 0.18);
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-full: 9999px;
+
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.25s ease;
+}
+
+/* Legacy bridge — DARK values (ThemeContext applies the same inline).
+   Dark theme is a MORNING DAWN paper mode: Morning Dawn surfaces (#FFF36D)
+   with Yale Blue ink (#0D3B66) in most places; cards step lighter, insets and
+   footers step down the yellow scale. Mirrors constants/colors.ts darkTheme. */
+.dark {
+  --color-on-brand: #FFFFFF;
+  --color-on-brand-soft: #0B2430;
+  --color-brand-tint: rgba(13, 59, 102, 0.10);
+  --color-brand-tint-strong: rgba(13, 59, 102, 0.22);
+  --color-brand-tint-solid: #F2EBC4;
+
+  --bg-primary: #FFF36D;
+  --bg-secondary: #F2E5B8;
+  --bg-surface: #FFFCF2;
+  --bg-surface-hover: #F2E5B8;
+  --bg-glass: rgba(255, 243, 109, 0.85);
+
+  --border-color: rgba(13, 59, 102, 0.18);
+  --border-glow: rgba(13, 59, 102, 0.28);
+
+  --accent-primary: #0D3B66;
+  --accent-primary-hover: #0A2F52;
+  --accent-glow: rgba(13, 59, 102, 0.18);
+
+  --accent-cyan: #0D3B66;
+  --accent-emerald: #16A34A;
+  --accent-amber: #B45309;
+  --accent-rose: #DC2626;
+  --accent-purple: #7C3AED;
+
+  --text-main: #0D3B66;
+  --text-muted: #2E5C8A;
+  --text-dim: #5A86B3;
+
+  --shadow-sm: 0 1px 3px rgba(13, 59, 102, 0.10);
+  --shadow-md: 0 4px 16px rgba(13, 59, 102, 0.12);
+  --shadow-glow: 0 0 20px rgba(13, 59, 102, 0.18);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* Base ink is Yale Blue: both themes use Morning Dawn-grade light surfaces.
+   Components that paint their own surfaces still override this. */
+body {
+  color: var(--color-text);
+}
+
+/* Glassmorphism card container */
+.glass-panel {
+    background: var(--bg-glass);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.ocean-bg {
+    background-color: var(--bg-primary);
+    background-image: linear-gradient(to bottom, var(--bg-glass), var(--bg-primary)), url('/ocean-bg.png');
+    background-size: cover;
+    background-position: center;
+}
+
+/* Morning Dawn ink on a Yale Blue panel (registration box).
+   Inline styles cannot reach ::placeholder, so the on-brand form fields are
+   finished here; the caret needs a rule for the same reason (it is not
+   inherited from the input colour in every browser).
+
+   The panel's copy is strictly Morning Dawn, so the placeholder is the SAME
+   ink at full strength — an empty field is told apart from a filled one by the
+   italic slant, never by a different colour or a dimmed alpha. */
+.on-brand-field::placeholder {
+    color: #FFF36D;
+    opacity: 1; /* Firefox dims placeholders by default */
+    font-style: italic;
+}
+
+.on-brand-field {
+    caret-color: #FFF36D;
+}
+
+.material-symbols-outlined {
+    font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
+    vertical-align: middle;
+}
+
+.glass-card {
+  background: var(--bg-glass);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.oceanic-glow {
+  box-shadow: 0 20px 40px var(--accent-glow);
+}
+
+.input-gradient-border {
+  border-bottom: 2px solid var(--border-color);
+  transition: all 0.3s ease;
+}
+
+.input-gradient-border:focus {
+  border-bottom: 2px solid var(--accent-primary);
+  outline: none;
+}
+
+.ocean-gradient {
+  background: radial-gradient(circle at top right, var(--accent-glow), transparent),
+              radial-gradient(circle at bottom left, var(--accent-glow), transparent);
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 15px rgba(13, 59, 102, 0.15); }
+  50% { box-shadow: 0 0 30px rgba(13, 59, 102, 0.35); }
+}
+
+.animate-fade-in {
+  animation: fadeIn var(--transition-normal) forwards;
+}
+
+.pulse-glow {
+  animation: pulseGlow 3s infinite;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+}
+::-webkit-scrollbar-thumb {
+  background: #CDBE92;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #4A606D;
+}
+
+/* Smooth theme transition */
+*, *::before, *::after {
+  transition-property: background-color, color, border-color, box-shadow;
+  transition-duration: 0.2s;
+  transition-timing-function: ease;
+}
+
+/* Badges — semantic classes (colors mirror constants/colors.ts). Tinted
+   backgrounds pair with the darker -text forms for AA contrast on Merino
+   or white surfaces. */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.65rem;
+  border-radius: var(--radius-full);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.badge-blue   { background: rgba(3, 105, 161, 0.10); color: #0369A1; border: 1px solid rgba(3, 105, 161, 0.28); }
+.badge-green  { background: rgba(22, 163, 74, 0.12); color: #166534; border: 1px solid rgba(22, 163, 74, 0.30); }
+.badge-amber  { background: rgba(245, 158, 11, 0.15); color: #92400E; border: 1px solid rgba(245, 158, 11, 0.35); }
+.badge-red    { background: rgba(220, 38, 38, 0.10); color: #B91C1C; border: 1px solid rgba(220, 38, 38, 0.28); }
+.badge-purple { background: rgba(124, 58, 237, 0.10); color: #6D28D9; border: 1px solid rgba(124, 58, 237, 0.25); }
+.badge-brand  { background: rgba(13, 59, 102, 0.10); color: #0D3B66; border: 1px solid rgba(13, 59, 102, 0.25); }
+
+/* Dark theme: the tinted badge backgrounds above stay (rgba tints are
+   surface-relative), but the dark-tuned text colors would sit on light-tuned
+   tints — swap to the light-mode text forms, which keep AA on the tint over
+   the dark surfaces. */
+.dark .badge-blue   { color: #0369A1; }
+.dark .badge-green  { color: #166534; }
+.dark .badge-amber  { color: #92400E; }
+.dark .badge-red    { color: #B91C1C; }
+.dark .badge-purple { color: #6D28D9; }
+.dark .badge-brand  { color: #0D3B66; }
+
+/* Grid helpers */
+.grid-cols-12 {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 1.5rem;
+}
+
+/* =========================================================================
+   Mobile support
+   - .mobile-grid-collapse: inline multi-column grids collapse to a single
+     column on phones (pages opt in per container).
+   - .mobile-table-scroll: wide tables scroll horizontally inside their card
+     instead of stretching the page.
+   - .sidebar-scrim: overlay behind the sidebar drawer on phones.
+   ========================================================================= */
+
+.sidebar-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 75;
+  background: rgba(11, 34, 57, 0.5);
+  backdrop-filter: blur(2px);
+  display: none;
+}
+
+.mobile-grid-collapse {
+  display: grid;
+}
+
+.mobile-table-scroll {
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  /* Sidebars are overlay drawers on phones: neutralize the sidebar offset
+     everywhere pages consume it as a CSS var (JS keeps setting these; the
+     !important stylesheet rule wins over those inline values on mobile). */
+  :root {
+    --sidebar-width: 0px !important;
+    --header-padding-left: 4.5rem !important;
+  }
+
+  .sidebar-scrim.is-open {
+    display: block;
+  }
+
+  /* Legacy DashboardLayout (dashboard / profile / success): same drawer
+     behaviour as the role sidebars, without the CSS-var offset machinery. */
+  .legacy-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    z-index: 80;
+    width: 260px !important;
+    min-height: 100vh !important;
+    overflow-y: auto;
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+  }
+
+  .legacy-sidebar.is-open {
+    transform: none;
+  }
+
+  .legacy-menu-btn {
+    display: flex !important;
+  }
+
+  .legacy-navbar-search,
+  .legacy-navbar-user-meta {
+    display: none !important;
+  }
+
+  /* Page shells put the content column in a flex row beside the sidebar. Inline
+     styles leave its min-width at auto, so one wide table lets the whole column
+     grow past the phone (clipped by overflow-x: clip, not scrollable). */
+  main {
+    min-width: 0 !important;
+  }
+
+  /* Role dashboard top bar: a 280px search field plus the action cluster
+     cannot fit beside the 72px hamburger offset, so the decorative pieces
+     step aside and the bar keeps its icons. */
+  .role-header {
+    padding-right: 1rem !important;
+  }
+
+  .role-header .role-header-search,
+  .role-header .role-header-status,
+  .role-header .role-header-divider {
+    display: none !important;
+  }
+
+  /* minmax(0, 1fr), not 1fr: a bare 1fr keeps a min-content floor, so one
+     wide child (a table, a long row) still pins the single track wider than
+     the phone and the content gets clipped by the page's overflow: hidden. */
+  .mobile-grid-collapse {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .mobile-table-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Content sits under the drawer instead of relying on the sidebar offset. */
+  .mobile-content {
+    margin-left: 0 !important;
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+
+  .mobile-content .mobile-pad {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+}

@@ -1,0 +1,51 @@
+name: Security audit
+
+# Dependency scanning. Runs on every push/PR and weekly, because a pin that was
+# clean when it was merged can become vulnerable when a CVE is disclosed later.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "0 6 * * 1"
+
+jobs:
+  backend:
+    name: Backend dependencies (pip-audit)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install pip-audit
+        run: python -m pip install --upgrade pip pip-audit
+
+      - name: Audit Python dependencies
+        working-directory: nhaav-backend
+        run: pip-audit --requirement requirements.txt
+
+  frontend:
+    name: Frontend dependencies (npm audit)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: nhaav-frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: nhaav-frontend
+        run: npm ci
+
+      # Production dependencies only: build tooling is not shipped to users, and
+      # failing the build on a dev-only advisory would just train people to
+      # ignore this check.
+      - name: Audit shipped dependencies
+        working-directory: nhaav-frontend
+        run: npm audit --omit=dev --audit-level=high

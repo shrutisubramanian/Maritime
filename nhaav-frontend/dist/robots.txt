@@ -1,0 +1,54 @@
+# Nhaav — robots policy
+#
+# Only the public marketing pages are crawlable. The marketplace, company
+# profiles, dashboards, payments and the admin console are authenticated
+# surfaces containing private business data, so they are disallowed here and
+# also send `X-Robots-Tag: noindex` from the host (.htaccess) and a
+# `<meta name="robots">` tag from the app.
+#
+# Update the Sitemap line if the production domain changes.
+
+User-agent: *
+Allow: /$
+Allow: /about
+Allow: /pricing
+Allow: /services
+Allow: /terms
+
+Disallow: /admin
+Disallow: /dashboard
+Disallow: /marketplace
+Disallow: /company
+Disallow: /provider
+Disallow: /supplier
+Disallow: /supplies
+Disallow: /ship-dashboard
+Disallow: /ship-owner
+Disallow: /provider-dashboard
+Disallow: /supplier-dashboard
+Disallow: /my-quotations
+Disallow: /procurement-opportunities
+Disallow: /submit-quotation
+Disallow: /compare-quotations
+Disallow: /create-request
+Disallow: /request
+Disallow: /payments
+Disallow: /notifications
+Disallow: /orders
+Disallow: /jobs
+Disallow: /profile
+Disallow: /settings
+Disallow: /verification
+Disallow: /analytics
+Disallow: /financials
+Disallow: /success
+Disallow: /login
+Disallow: /register
+Disallow: /choose-role
+Disallow: /role
+Disallow: /forgot-password
+Disallow: /reset-password
+Disallow: /verify-email
+Disallow: /resend-verification
+
+Sitemap: https://nhaav.com/sitemap.xml

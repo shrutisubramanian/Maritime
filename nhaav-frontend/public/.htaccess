@@ -1,0 +1,43 @@
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+
+  # Serve existing files and directories directly without rewriting
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+
+  # Route all other URLs to index.html for Single Page App (React Router)
+  RewriteRule ^ index.html [L]
+</IfModule>
+
+# Ensure proper MIME types for video and web assets
+<IfModule mod_mime.c>
+  AddType video/mp4 .mp4
+  AddType video/webm .webm
+  AddType video/ogg .ogv
+  AddType image/svg+xml .svg .svgz
+</IfModule>
+
+# Enable Byte-Range Requests for smooth video seeking & streaming
+<IfModule mod_headers.c>
+  Header set Accept-Ranges bytes
+</IfModule>
+
+# SEO: authenticated / private surfaces are never indexed, even if a crawler
+# ignores the app's <meta name="robots"> tag (defence in depth for the SPA).
+<IfModule mod_setenvif.c>
+  SetEnvIf Request_URI "^/(admin|dashboard|marketplace|company|provider|supplier|supplies|ship-dashboard|ship-owner|provider-dashboard|supplier-dashboard|my-quotations|procurement-opportunities|submit-quotation|compare-quotations|create-request|request|payments|notifications|orders|jobs|profile|settings|verification|analytics|financials|success|login|register|choose-role|role|forgot-password|reset-password|verify-email|resend-verification)(/|$)" NHAV_NOINDEX
+</IfModule>
+<IfModule mod_headers.c>
+  Header set X-Robots-Tag "noindex, nofollow" env=NHAV_NOINDEX
+  # Static SEO files should be served as-is, never as the SPA fallback.
+  <FilesMatch "^(robots\.txt|sitemap\.xml)$">
+    Header set Cache-Control "public, max-age=3600"
+  </FilesMatch>
+</IfModule>
+
+# Prevent gzip/deflate from compressing video files (compression breaks byte-range requests)
+<IfModule mod_deflate.c>
+  SetEnvIfNoCase Request_URI \.(?:mp4|webm|ogv)$ no-gzip dont-vary
+</IfModule>

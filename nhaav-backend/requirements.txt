@@ -1,0 +1,45 @@
+fastapi==0.136.3
+starlette==1.3.1
+uvicorn[standard]>=0.23.2
+sqlalchemy>=2.0.23
+alembic>=1.12.1
+python-dotenv>=1.0.0
+pydantic>=2.4.2
+pydantic-settings>=2.0.3
+email-validator>=2.0.0
+
+# Authentication (JWT and password hashing)
+PyJWT>=2.10.1
+# bcrypt directly: passlib 1.7.4 is broken against bcrypt >= 4.1
+bcrypt>=4.0.1
+python-multipart>=0.0.6
+
+# Database Drivers
+# If you are using PostgreSQL, keep this uncommented:
+psycopg2-binary>=2.9.9
+# If using MySQL instead, uncomment below:
+# pymysql>=1.1.0
+
+python-docx>=1.1.0
+pytest>=7.4.0
+
+# OCR / document pipeline. These are imported when the app starts (ocr_service),
+# so a container without them fails to boot rather than degrading one feature.
+# PyMuPDF provides `fitz` (PDF text extraction); pdf2image converts scanned
+# pages via poppler; Pillow is pytesseract's image backend.
+opencv-python-headless>=4.8.0
+pytesseract>=0.3.10
+PyMuPDF>=1.23.0
+pdf2image>=1.16.3
+Pillow>=13.0.0
+# Security patches verified by pip-audit on 2026-11-04.
+# FastAPI is pinned because 0.162 lazily wraps included routers, which breaks
+# route-inventory contracts; Starlette is the patched 1.3.1 release.
+cryptography>=50.0.0
+anyio>=4.14.2
+certifi>=2026.10.18
+dnspython>=2.9.0
+pydantic-settings>=2.14.2
+pyasn1>=0.6.5
+urllib3>=2.8.0
+openpyxl==3.1.5
