@@ -530,6 +530,8 @@ def test_h3_production_requires_s3_backend():
         # satisfy the email production fail-fast (runs before the storage check)
         "EMAIL_BACKEND": "smtp",
         "EMAIL_HOST": "smtp.test.local",
+        "EMAIL_HOST_USER": "no-reply@test.local",
+        "EMAIL_HOST_PASSWORD": "test-smtp-password",
         "EMAIL_FROM": "no-reply@test.local",
         "ENVIRONMENT": "production",
         "STORAGE_BACKEND": "local",

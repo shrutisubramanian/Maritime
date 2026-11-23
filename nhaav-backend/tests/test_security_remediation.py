@@ -218,11 +218,19 @@ class TestM2EnvironmentFailClosed:
         # supply a valid, never-used SMTP configuration to satisfy that premise.
         saved_email = {
             k: os.environ.get(k)
-            for k in ("EMAIL_BACKEND", "EMAIL_HOST", "EMAIL_FROM")
+            for k in (
+                "EMAIL_BACKEND",
+                "EMAIL_HOST",
+                "EMAIL_HOST_USER",
+                "EMAIL_HOST_PASSWORD",
+                "EMAIL_FROM",
+            )
         }
         os.environ.update(
             EMAIL_BACKEND="smtp",
             EMAIL_HOST="smtp.example.com",
+            EMAIL_HOST_USER="no-reply@example.com",
+            EMAIL_HOST_PASSWORD="test-smtp-password",
             EMAIL_FROM="no-reply@example.com",
         )
         try:
@@ -556,6 +564,8 @@ class TestM4NoStartupCreateAll:
             env.update(
                 EMAIL_BACKEND="smtp",
                 EMAIL_HOST="smtp.example.com",
+                EMAIL_HOST_USER="no-reply@example.com",
+                EMAIL_HOST_PASSWORD="test-smtp-password",
                 EMAIL_FROM="no-reply@example.com",
             )
             code = (
@@ -592,6 +602,8 @@ class TestM4NoStartupCreateAll:
             env.update(
                 EMAIL_BACKEND="smtp",
                 EMAIL_HOST="smtp.example.com",
+                EMAIL_HOST_USER="no-reply@example.com",
+                EMAIL_HOST_PASSWORD="test-smtp-password",
                 EMAIL_FROM="no-reply@example.com",
             )
             up = subprocess.run(

@@ -145,8 +145,10 @@ SUPPORT_EMAIL=<SUPPORT-INBOX>
 ```
 
 - [ ] `EMAIL_BACKEND=smtp`; `console` is refused in production.
-- [ ] `EMAIL_HOST` and `EMAIL_FROM` are present; the sender is verified with the
-      provider and matches the authenticated account/domain.
+- [ ] `EMAIL_HOST`, `EMAIL_FROM`, `EMAIL_HOST_USER` and `EMAIL_HOST_PASSWORD`
+      are all present (a missing credential now blocks boot, not the first
+      registration); the sender is verified with the provider and matches the
+      authenticated account/domain.
 - [ ] TLS mode and port are correct for the provider (587 STARTTLS or 465 SSL as
       supported).
 - [ ] SPF, DKIM and DMARC are configured for the sending domain; test messages

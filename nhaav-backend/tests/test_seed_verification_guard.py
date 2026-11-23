@@ -74,6 +74,8 @@ PRODUCTION_ENV = {
     "CORS_ORIGINS": "https://app.example.com",
     "EMAIL_BACKEND": "smtp",
     "EMAIL_HOST": "smtp.test.local",
+    "EMAIL_HOST_USER": "no-reply@test.local",
+    "EMAIL_HOST_PASSWORD": "test-smtp-password",
     "EMAIL_FROM": "no-reply@test.local",
 }
 

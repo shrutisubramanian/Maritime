@@ -420,10 +420,20 @@ class Settings:
                     missing_email.append("EMAIL_HOST (SMTP_HOST)")
                 if not self.EMAIL_FROM:
                     missing_email.append("EMAIL_FROM (SMTP_FROM_EMAIL)")
+                # Credentials are required too, not merely a host and a sender:
+                # SMTPEmailBackend skips login() when the username is empty, so
+                # a host-only config would boot cleanly and then fail (or attempt
+                # an unauthenticated send) on the first registration instead of
+                # here. Mailbox providers reject that, and every user-facing
+                # verification link would be lost.
+                if not self.EMAIL_HOST_USER:
+                    missing_email.append("EMAIL_HOST_USER (SMTP_USERNAME)")
+                if not self.EMAIL_HOST_PASSWORD:
+                    missing_email.append("EMAIL_HOST_PASSWORD (SMTP_PASSWORD)")
                 if missing_email:
                     raise ValueError(
                         "EMAIL_BACKEND=smtp requires "
-                        + " and ".join(missing_email)
+                        + ", ".join(missing_email)
                         + " when ENVIRONMENT=production."
                     )
 
